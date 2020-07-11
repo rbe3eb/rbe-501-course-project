@@ -10,6 +10,7 @@ function [] = kinova()
     % Inverse kinematics
     desPos = [0, 0, 1];
     q = computeIK(T,J,desPos);
+    [M,C,G] = dynamicalModel();
 
 end
 
