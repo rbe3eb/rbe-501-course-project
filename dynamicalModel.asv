@@ -1,19 +1,28 @@
-function [DM,T01,T02,T03,q1,q2,q3,dq1,dq2,dq3] = dynamicalModel()
-    syms q1 q2 q3 q4 q5 q6
-    syms l1 l2 l3 l4 l5 l6
-    syms dq1 dq2 dq3 dq4 dq5 dq6 ddq1 ddq2 ddq3 real;
-    syms m1 m2 m3 g real;
+function [M, C, G] = dynamicalModel()
+    syms l1 l2 l3 l4 l5 l6 ...
+        m1 m2 m3 m4 m5 m6 g ...
+        q1 q2 q3 q4 q5 q6 ...
+        dq1 dq2 dq3 dq4 dq5 dq6 ...
+        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 real;
+    
+    l = [l1, l2, l3, l4, l5, l6];
+    m = [m1, m2, m3, m4, m5, m6];
+    q = [q1, q2, q3, q4, q5, q6];
+    dq = [dq1, dq2, dq3, dq4, dq5, dq6];
+    ddq = [ddq1, ddq2, ddq3, ddq4, ddq5, ddq6];
     
     % Mass of the link (grams)
     mass = [2292.668, 583.341, 1167.569, 593.781, 367.799, 367.799];
+    
     % Length of the link (mm)
     length = [156.502, 159.758, 492.517, 248.258, 135.263, 135.263];
-    % Co
+    
+    % Coordinates of the center of mass (mm)
     rc = [[-0.301; 1.127; 70.634], [10.879; -0.01; 226.184], ...
         [-24.195; -0.002; 480.492], [16.852; 0.002; 760.264], ...
         [-4.545; 0.015; 956.344], [24.045; 0.015; 1036.656]];
     
-    % Moment of Inertia at Center of Mass: g*mm^2
+    % Moment of Inertia at Center of Mass (g*mm^2)
 	Ixx = [5.263E+06, 1.902E+06, 2.870E+07, 3.912E+06, 7.368E+05, 7.368E+05];
 	Ixy = [2.418E+04, 9.402, -7.653, 17.362, -8.345,  8.345];
 	Ixz = [2.709E+04, -2.331E+05, -43.188, 1.489E+05, 1.510E+05, 1.510E+05];
@@ -24,6 +33,16 @@ function [DM,T01,T02,T03,q1,q2,q3,dq1,dq2,dq3] = dynamicalModel()
 	Izy = [-2.362E+05, -98.997, -867.047, 334.219, 63.799, -63.799];
 	Izz = [2.594E+06, 7.121E+05, 8.923E+05, 4.649E+05, 3.035E+05, 3.035E+05];
     
+    I = {};
+    R = {};
+    for i=1:6
+        % Form inertia tensor
+        I{i} = [Ixx Ixy Ixz
+                Iyx Iyy Iyz
+                Izx Izy Izz];
+        % Collect rotation matrices
+        R{i} = T{i}(1:3,1:3);
+    end
     
     
     %
@@ -180,6 +199,19 @@ function [DM,T01,T02,T03,q1,q2,q3,dq1,dq2,dq3] = dynamicalModel()
     T03 = subs(T03, [l1,l2,l3],l);
 end
 
+% Compute the kinetic energy
+function K = computeKE()
+    d = {};
+    Jv = J(1:3,1:6);
+    Jw = J(4:6,1:6);
+    for i=1:6
+        d{i} = (m(i)*Jv(i)'*J(i)) + (Jw(i)'*R{i}*I{i}*R{i}'*Jw(i));
+    end
+    D = d{1} + d{2} + d{3} + d{4} + d{5} + d{6};
+    K = (1/2)*
+end
+
+% Obtain transformation matrix from DH parameters
 function [A] = DH(alpha, a, d, theta)
     a11 = cos(theta);
     a12 = -1*sin(theta)*cos(alpha);

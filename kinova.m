@@ -3,14 +3,9 @@ function [] = kinova()
     
     % Homogeneous transform from DH parameters
     T = dh2Trans();
-    [phi, theta, psi] = ZYZ(T);
     % compute jacobian
     J = computeJacobian(T);
-    Ja = analyticalJacobian(J, phi, theta, psi);
-    % Inverse kinematics
-    desPos = [0, 0, 1];
-    q = computeIK(T,J,desPos);
-    [M,C,G] = dynamicalModel();
+    [M,C,G] = dynamicalModel(T,J);
 
 end
 
