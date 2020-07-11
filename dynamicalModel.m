@@ -5,6 +5,7 @@ function [M, C, G] = dynamicalModel(T,J)
         dq1 dq2 dq3 dq4 dq5 dq6 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 real;
     
+    g = 9.81 * [0; 0; 1];
     l = [l1, l2, l3, l4, l5, l6]';
     m = [m1, m2, m3, m4, m5, m6]';
     q = [q1, q2, q3, q4, q5, q6]';
@@ -44,7 +45,8 @@ function [M, C, G] = dynamicalModel(T,J)
         R{i} = T{i}(1:3,1:3);
     end
     
-    K = computeKE(J,R,I,m,dq);
+    K = computeKE(J,R,I,mass,dq);
+    P = computePE(mass,g,rc);
     return
     
     
@@ -204,14 +206,22 @@ end
 
 % Compute the kinetic energy
 function K = computeKE(J,R,I,m,dq)
-    d = {};
+    d = cell(1,6);
     Jv = J(1:3,1:6);
     Jw = J(4:6,1:6);
     for i=1:6
         d{i} = (m(i)*Jv(1:3,i)'*Jv(1:3,i)) + (Jw(1:3,i)'*R{i}*I{i}*R{i}'*Jw(1:3,i));
     end
     D = d{1} + d{2} + d{3} + d{4} + d{5} + d{6};
-    K = simplify((1/2)*dq'*D*dq);
+    K = (1/2)*dq'*D*dq;
+end
+
+function P = computePE(m,g,rc)
+    p = cell(1,6);
+    for i=1:6
+        p{i} = m(i)*g'*rc(i);
+    end
+    P = p{1} + p{2} + p{3} + p{4} + p{5} + p{6};
 end
 
 % Obtain transformation matrix from DH parameters

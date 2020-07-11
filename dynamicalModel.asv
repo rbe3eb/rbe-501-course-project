@@ -1,15 +1,15 @@
-function [M, C, G] = dynamicalModel()
+function [M, C, G] = dynamicalModel(T,J)
     syms l1 l2 l3 l4 l5 l6 ...
         m1 m2 m3 m4 m5 m6 g ...
         q1 q2 q3 q4 q5 q6 ...
         dq1 dq2 dq3 dq4 dq5 dq6 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 real;
     
-    l = [l1, l2, l3, l4, l5, l6];
-    m = [m1, m2, m3, m4, m5, m6];
-    q = [q1, q2, q3, q4, q5, q6];
-    dq = [dq1, dq2, dq3, dq4, dq5, dq6];
-    ddq = [ddq1, ddq2, ddq3, ddq4, ddq5, ddq6];
+    l = [l1, l2, l3, l4, l5, l6]';
+    m = [m1, m2, m3, m4, m5, m6]';
+    q = [q1, q2, q3, q4, q5, q6]';
+    dq = [dq1, dq2, dq3, dq4, dq5, dq6]';
+    ddq = [ddq1, ddq2, ddq3, ddq4, ddq5, ddq6]';
     
     % Mass of the link (grams)
     mass = [2292.668, 583.341, 1167.569, 593.781, 367.799, 367.799];
@@ -37,12 +37,16 @@ function [M, C, G] = dynamicalModel()
     R = {};
     for i=1:6
         % Form inertia tensor
-        I{i} = [Ixx Ixy Ixz
-                Iyx Iyy Iyz
-                Izx Izy Izz];
+        I{i} = [Ixx(i) Ixy(i) Ixz(i)
+                Iyx(i) Iyy(i) Iyz(i)
+                Izx(i) Izy(i) Izz(i)];
         % Collect rotation matrices
         R{i} = T{i}(1:3,1:3);
     end
+    
+    K = computeKE(J,R,I,mass,dq);
+    P = computePE(mass,g,rc)
+    return
     
     
     %
@@ -200,15 +204,19 @@ function [M, C, G] = dynamicalModel()
 end
 
 % Compute the kinetic energy
-function K = computeKE()
+function K = computeKE(J,R,I,m,dq)
     d = {};
     Jv = J(1:3,1:6);
     Jw = J(4:6,1:6);
     for i=1:6
-        d{i} = (m(i)*Jv(i)'*J(i)) + (Jw(i)'*R{i}*I{i}*R{i}'*Jw(i));
+        d{i} = (m(i)*Jv(1:3,i)'*Jv(1:3,i)) + (Jw(1:3,i)'*R{i}*I{i}*R{i}'*Jw(1:3,i));
     end
     D = d{1} + d{2} + d{3} + d{4} + d{5} + d{6};
-    K = (1/2)*
+    K = (1/2)*dq'*D*dq;
+end
+
+function P = computePE(m,g,rc)
+    for
 end
 
 % Obtain transformation matrix from DH parameters
