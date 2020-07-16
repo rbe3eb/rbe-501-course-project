@@ -185,7 +185,7 @@ end
 function [T,M,C,G,q1,q2,q3,q4,q5,q6,dq1,dq2,dq3,dq4,dq5,dq6] = loadVars()
     syms q1 q2 q3 q4 q5 q5 q6 ...
         dq1 dq2 dq3 dq4 dq5 dq6 real;
-    filenames = {'T.mat','M.mat','C.mat','G.mat'};  
+    filenames = {'vars/T.mat','vars/M.mat','vars/C.mat','vars/G.mat'};  
     for var = 1:numel(filenames)
         load(filenames{var})
     end 
