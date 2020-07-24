@@ -1,13 +1,14 @@
 function [] = kinova()
     clc; clear;
     
-    mass = [1.697, 1.377, 1.262, 0.930, 0.678, 0.678, 0.364];
     % Compute homogeneous transformations
     T = hTran();
+    % Collect inertia tensor
+    I = inertiaTensor();
     % Compute Jacobian matrix
     [Jv, Jw] = Jacobian(T);
-	K = KE(Jv,Jw,T,mass,cnt); % Kinetic Energy
-	P = PE(T,mass,cnt); % Potential Energy
+	K = KE(Jv,Jw,T,I); % Kinetic Energy
+	P = PE(T); % Potential Energy
     tau = torqueMatrix(K,P); % Torque Matrix
     M = mMatrix(tau); % Intertia matrix
     G = gMatrix(tau); % Gravity matrix
@@ -132,16 +133,22 @@ function linkCOM = LinkCenterOfMass(T)
     linkCOM = linkCOM(1:3,:);
 end
 
-function K = KE(Jv,Jw,T,mass,cnt)
-    syms q1 q2 q3 q4 q5 q6 ...
-        dq1 dq2 dq3 dq4 dq5 dq6 real;
-    I = inertialParams(cnt);
-    dq = [dq1; dq2; dq3; dq4; dq5; dq6];
-    M = inertiaMatrix(Jv,Jw,I,T,mass,cnt);
+function K = KE(Jv,Jw,T,I)
+    syms dq1 dq2 dq3 dq4 dq5 dq6 dq7 real;
+    
+    dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
+	M = sym(zeros(7,7));
+    
+    % Compute inertia matrix
+    for n=1:7
+    	M = M + (mass(n)*Jv{n}'*Jv{n}) + (Jw{n}'*T{n}(1:3,1:3)*I{n}* ...
+            T{n}(1:3,1:3)'*Jw{n});
+    end
     K = simplify((1/2)*dq'*M*dq);
 end
 
-function I = inertialParams(cnt)
+% Collect inertial tensors
+function I = inertialTensor()
     Ixx = [0.004622, 0.004570 0.046752 0.008292 0.001645 0.001685 ...
         0.000214];
     Ixy = [0.000009, 0.000001 -0.000009 -0.000001 0.000000 0.000000 ...
@@ -160,15 +167,6 @@ function I = inertialParams(cnt)
         I{n} = [Ixx(n) Ixy(n) Ixz(n)
             Iyx(n) Iyy(n) Iyz(n)
             Izx(n) Izy(n) Izz(n)];
-    end
-end
-
-function M = inertiaMatrix(Jv,Jw,I,T,mass,cnt)
-	M = sym(zeros(cnt,cnt));
-    for n=1:cnt
-    	M = M + (mass(n)*Jv{n}'*Jv{n}) + (Jw{n}'*T{n}(1:3,1:3)*I{n}* ...
-            T{n}(1:3,1:3)'*Jw{n});
-        %M = simplify(M);
     end
 end
     
