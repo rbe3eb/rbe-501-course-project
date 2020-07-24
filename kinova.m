@@ -4,7 +4,7 @@ function [] = kinova()
     % Compute homogeneous transformations
     T = hTran();
     % Collect inertia tensor
-    I = inertiaTensor();
+    I = inertialTensor();
     % Compute Jacobian matrix
     [Jv, Jw] = Jacobian(T);
 	K = KE(Jv,Jw,T,I); % Kinetic Energy
@@ -114,14 +114,14 @@ function linkCOM = LinkCenterOfMass(T)
     % Average center of mass of gripper and interface wrt actuator 7 frame
     endEffectorCOM = (gripperCOM + interfaceCOM) / 2;
     % Link of center of mass wrt the precedent joint reference frame
-	L = [[-0.000648; -0.000166; 0.084487], ...
-        [-0.000023; -0.010364; -0.073360], ...
-        [-0.000044; -0.099580; -0.013278], ...
-        [-0.000044; -0.006641; -0.117892], ...
-        [-0.000018; -0.075478; -0.015006], ...
-        [0.000001; -0.009432; -0.063883], ...
-        [0.000001; -0.045483; -0.009650], ...
-        endEffectorCOM];
+	L = sym([[-0.000648; -0.000166; 0.084487; 1], ...
+        [-0.000023; -0.010364; -0.073360; 1], ...
+        [-0.000044; -0.099580; -0.013278; 1], ...
+        [-0.000044; -0.006641; -0.117892; 1], ...
+        [-0.000018; -0.075478; -0.015006; 1], ...
+        [0.000001; -0.009432; -0.063883; 1], ...
+        [0.000001; -0.045483; -0.009650; 1], ...
+        [endEffectorCOM; 1]]);
     % Link center of mass wrt the base frame
     linkCOM(1:4,1) = L(1:4,1);
     linkCOM(1:4,2) = simplify(T{2}*L(1:4,2));
@@ -135,6 +135,11 @@ end
 
 function K = KE(Jv,Jw,T,I)
     syms dq1 dq2 dq3 dq4 dq5 dq6 dq7 real;
+    % End-Effector mass
+    gripperMass = 0.9; interfaceMass = 0.364;
+    % Link masses
+    mass = [1.377, 1.1636, 1.1636, 0.930, 0.678, 0.678, ...
+        gripperMass + interfaceMass];
     
     dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
 	M = sym(zeros(7,7));
@@ -148,22 +153,39 @@ function K = KE(Jv,Jw,T,I)
 end
 
 % Collect inertial tensors
-function I = inertialTensor()
-    Ixx = [0.004622, 0.004570 0.046752 0.008292 0.001645 0.001685 ...
-        0.000214];
-    Ixy = [0.000009, 0.000001 -0.000009 -0.000001 0.000000 0.000000 ...
-        0.000000];
-    Ixz = [0.000060, 0.000002 0.000000 0.000000 0.000000 0.000000 ...
-        0.000001];
-    Iyy = [0.004495, 0.004831 0.000850 0.000628 0.001666 0.000400 ...
-        0.000223];
-    Iyz = [0.000009, 0.000448 -0.000098 0.000432 -0.000234 0.000255 ...
-        0.000002];
-    Izz = [0.002079, 0.001409 0.047188 0.008464 0.000389 0.001696 ...
-        0.000240];
-    Iyx = Ixy; Izx = Ixz; Izy = Iyz;
-    I = cell(cnt,1);
-    for n=1:cnt
+function [I] = inertialTensor()
+    I = cell(7,1);
+    % Gripper moment of inertia wrt current frame
+    IxxGripper = 0.00418; IxyGripper = 0; IxzGripper = 0;
+    IyyGripper = 0.00518; IyzGripper = 0; IzzGripper = 0.00125;
+    % Interface moment of inertia wrt current frame
+    IxxInterface = 0.000214; IxyInterface = 0; IxzInterface = 0.000001;
+    IyyInterface = 0.000223; IyzInterface = -0.000002; IzzInterface = 0.000240;
+    % Combined moment of inertia of gripper and interface wrt current frame
+    IxxEE = IxxGripper + IxxInterface; 
+    IxyEE = IxyGripper + IxyInterface; 
+    IxzEE = IxzGripper + IxzInterface;
+    IyyEE = IyyGripper + IyyInterface;
+    IyzEE = IyzGripper + IyzInterface;
+    IzzEE = IzzGripper + IzzInterface;
+    % Moment of inertia of each link wrt their center of mass
+    Ixx = [0.004622, 0.004570 0.011088 0.010932 0.008147 0.001596 ...
+        0.001641 IxxEE];
+    Ixy = [0.000009, 0.000001 0.000005 0.000000 -0.000001 0.000000 ...
+        0.000000 IxyEE];
+    Ixz = [0.000060, 0.000002 0.000000 -0.000007 0.000000 0.000000 ...
+        0.000000 IxzEE];
+    Iyy = [0.004495, 0.004831 0.001072 0.011127 0.000631 0.001607 ...
+        0.000410 IyyEE];
+    Iyz = [0.000009, 0.000448 -0.000691 0.000606 -0.000500 0.000256 ...
+        -0.000278 IyzEE];
+    Izz = [0.002079, 0.001409 0.011255 0.001043 0.008316 0.000399 ...
+        0.001641 IzzEE];
+    Iyx = Ixy; 
+    Izx = Ixz; 
+    Izy = Iyz;
+    % Create inertia tensors
+    for n=1:7
         I{n} = [Ixx(n) Ixy(n) Ixz(n)
             Iyx(n) Iyy(n) Iyz(n)
             Izx(n) Izy(n) Izz(n)];
