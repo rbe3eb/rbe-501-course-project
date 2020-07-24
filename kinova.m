@@ -2,10 +2,10 @@ function [] = kinova()
     clc; clear;
     
     mass = [1.697, 1.377, 1.262, 0.930, 0.678, 0.678, 0.364];
-    cnt = 6;
-    
-    T = transformationMatrix(cnt); % Transformation matrix
-    [Jv, Jw] = Jacobian(T,cnt); % Jacobian matrix
+    % Compute homogeneous transformations
+    T = hTran();
+    % Compute Jacobian matrix
+    [Jv, Jw] = Jacobian(T);
 	K = KE(Jv,Jw,T,mass,cnt); % Kinetic Energy
 	P = PE(T,mass,cnt); % Potential Energy
     tau = torqueMatrix(K,P); % Torque Matrix
@@ -14,92 +14,122 @@ function [] = kinova()
     C = cMatrix(tau,M,G); % Centrifugal and coriolis matrix
 end
 
-function T = transformationMatrix(cnt)
-	syms q1 q2 q3 q4 q5 q6 real
+function T = hTran()
+	syms q1 q2 q3 q4 q5 q6 q7 real
     T = cell(7,1);
-
+    
+    % Base to frame 1
     T01 = [cos(q1), -sin(q1), 0, 0
            -sin(q1), -cos(q1), 0, 0
            0, 0, -1, 0.1564
            0, 0, 0, 1];
+       
+    % Frame 1 to frame 2
+	T12 = [cos(q2), -sin(q2), 0, 0
+        0, 0, -1, 0.0054
+        sin(q2), cos(q2), 0, -0.1284
+        0, 0, 0, 1];
+    
+    % Frame 2 to frame 3
+	T23 = [cos(q3), -sin(q3), 0, 0
+        0, 0, 1, -0.2104
+        -sin(q3), -cos(q3), 0, -0.0064
+        0, 0, 0, 1];
+    
+    % Frame 3 to frame 4
+	T34 = [cos(q4), -sin(q4), 0, 0
+        0, 0, -1, 0.0064
+        sin(q4), cos(q4), 0, -0.2104
+        0, 0, 0, 1];
 
-     T12 = [cos(q2), -sin(q2), 0, 0
-             0, 0, -1, 0.0054
-             sin(q2), cos(q2), 0, -0.1284
-             0, 0, 0, 1];
-
-     T23 = [cos(q3), -sin(q3), 0, 0
-             -sin(q3), -cos(q3), 0, -0.410
-             0, 0, -1, 0
-             0, 0, 0, 1];
-
-     T34 = [cos(q4), -sin(q4), 0, 0
-             0, 0, -1, 0.2084
-             sin(q4), cos(q4), 0, -0.0064
-             0, 0, 0, 1];
-
-     T45 = [cos(q5), -sin(q5), 0, 0
-             0, 0, 1, 0
-             -sin(q5), -cos(q5), 0, -0.1059
-             0, 0, 0, 1];
+    % Frame 4 to frame 5
+	T45 = [cos(q5), -sin(q5), 0, 0
+        0, 0, 1, 0
+        -sin(q5), -cos(q5), 0, -0.1059
+        0, 0, 0, 1];
+    
+    % Frame 5 to frame 6
      T56 = [cos(q6), -sin(q6), 0, 0
-            0, 0, -1, 0.1059
-            sin(q6), cos(q6), 0, 0
-            0, 0, 0, 1];
-     T67 = [-1, 0, 0, 0
+         0, 0, -1, 0
+         sin(q6), cos(q6), 0, -0.1059
+         0, 0, 0, 1];
+     
+     % Frame 6 to frame 7
+     T67 = [cos(q7), -sin(q7), 0, 0
+         0, 0, 1, -0.1059
+         -sin(q7), -cos(q7), 0, 0
+         0, 0, 0, 1];
+     
+     % Frame 7 to gripper frame
+     T7e = [1, 0, 0, 0
             0, 1, 0, 0
-            0, 0, -1, -0.615
+            0, 0, 1, 0.1250
             0, 0, 0, 1];
         
+    % Calculate homogeneous transformations
     T{1} = simplify(T01);
     T{2} = simplify(T01*T12);
     T{3} = simplify(T01*T12*T23);
     T{4} = simplify(T01*T12*T23*T34);
     T{5} = simplify(T01*T12*T23*T34*T45);
     T{6} = simplify(T01*T12*T23*T34*T45*T56);
-    T{7} = simplify(T01*T12*T23*T34*T45*T56*T67);
+    T{7} = simplify(T01*T12*T23*T34*T45*T56*T67*T7e);
 end
 
-function [Jv, Jw] = Jacobian(T,cnt)
-    syms q1 q2 q3 q4 q5 q6 real;
-    r = COM(T,cnt);
-    jv1 = simplify(jacobian(r(1:3,1), [q1,q2,q3,q4,q5,q6]));
-    jv2 = simplify(jacobian(r(1:3,2), [q1,q2,q3,q4,q5,q6]));
-    jv3 = simplify(jacobian(r(1:3,3), [q1,q2,q3,q4,q5,q6]));
-    jv4 = simplify(jacobian(r(1:3,4), [q1,q2,q3,q4,q5,q6]));
-    jv5 = simplify(jacobian(r(1:3,5), [q1,q2,q3,q4,q5,q6]));
-    jv6 = simplify(jacobian(r(1:3,6), [q1,q2,q3,q4,q5,q6]));
-
-    jw1 = [[0; 0; 1], zeros(3,5)];
-    jw2 = [[0;0;1], T{1}(1:3,3), zeros(3,4)];
-    jw3 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), zeros(3,3)];
-    jw4 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), zeros(3,2)];
+function [Jv, Jw] = Jacobian(T)
+    syms q1 q2 q3 q4 q5 q6 q7 real;
+    linkCOM = LinkCenterOfMass(T);
+    % Linear velocity jacobian at each frame center of mass
+    jv1 = simplify(jacobian(linkCOM(1:3,1), [q1,q2,q3,q4,q5,q6,q7]));
+    jv2 = simplify(jacobian(linkCOM(1:3,2), [q1,q2,q3,q4,q5,q6,q7]));
+    jv3 = simplify(jacobian(linkCOM(1:3,3), [q1,q2,q3,q4,q5,q6,q7]));
+    jv4 = simplify(jacobian(linkCOM(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    jv5 = simplify(jacobian(linkCOM(1:3,5), [q1,q2,q3,q4,q5,q6,q7]));
+    jv6 = simplify(jacobian(linkCOM(1:3,6), [q1,q2,q3,q4,q5,q6,q7]));
+    jv7 = simplify(jacobian(linkCOM(1:3,7), [q1,q2,q3,q4,q5,q6,q7]));
+    % Angular velocity jacobian at each center of mass
+    jw1 = [[0; 0; 1], zeros(3,6)];
+    jw2 = [[0;0;1], T{1}(1:3,3), zeros(3,5)];
+    jw3 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), zeros(3,4)];
+    jw4 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), zeros(3,3)];
     jw5 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), ...
-        T{4}(1:3,3), zeros(3,1)];
+        T{4}(1:3,3), zeros(3,2)];
     jw6 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), ...
-        T{4}(1:3,3), T{5}(1:3,3)];
-      
-   Jv = {jv1, jv2, jv3, jv4, jv5, jv6};
-   Jw = {jw1, jw2, jw3, jw4, jw5, jw6};
+        T{4}(1:3,3), T{5}(1:3,3), zeros(3,1)];
+    jw7 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), ...
+        T{4}(1:3,3), T{5}(1:3,3), T{6}(1:3,3)];
+   % Combine jacobian matrices
+   Jv = {jv1, jv2, jv3, jv4, jv5, jv6, jw7};
+   Jw = {jw1, jw2, jw3, jw4, jw5, jw6, jv7};
 end
 
-function r = COM(T,cnt)
-	r = sym(zeros(4,cnt));
-	L = [[-0.000648; -0.000166; 0.084487; 1], ...
-        [-0.000023; -0.010364; -0.073360; 1], ...
-        [0.000035; -0.208207; -0.018890; 1], ...
-        [0.000018; 0.076168; -0.013970; 1], ...
-        [-0.000001; 0.008466; -0.062937; 1], ...
-        [-0.000001; 0.046429; -0.008704; 1], ...
-        [-0.000093; 0.000132; -0.022905; 1]];
-    r(1:4,1) = simplify(T{1}*L(1:4,1));
-    r(1:4,2) = simplify(T{2}*L(1:4,2));
-    r(1:4,3) = simplify(T{3}*L(1:4,3));
-    r(1:4,4) = simplify(T{4}*L(1:4,4));
-    r(1:4,5) = simplify(T{5}*L(1:4,5));
-    r(1:4,6) = simplify(T{6}*L(1:4,6));
-    r(1:4,7) = simplify(T{7}*L(1:4,7));
-    r = r(1:3,:);
+% Represent each link's center of mass wrt the base frame
+function linkCOM = LinkCenterOfMass(T)
+	linkCOM = sym(zeros(4,7));
+    % Gripper center of mass wrt actuator 7 frame
+    gripperCOM = [0; 0; -0.057-61.5];
+    % Interface center of mass wrt actuator 7 frame
+    interfaceCOM = [-0.000093; 0.000132; -0.022905];
+    % Average center of mass of gripper and interface wrt actuator 7 frame
+    endEffectorCOM = (gripperCOM + interfaceCOM) / 2;
+    % Link of center of mass wrt the precedent joint reference frame
+	L = [[-0.000648; -0.000166; 0.084487], ...
+        [-0.000023; -0.010364; -0.073360], ...
+        [-0.000044; -0.099580; -0.013278], ...
+        [-0.000044; -0.006641; -0.117892], ...
+        [-0.000018; -0.075478; -0.015006], ...
+        [0.000001; -0.009432; -0.063883], ...
+        [0.000001; -0.045483; -0.009650], ...
+        endEffectorCOM];
+    % Link center of mass wrt the base frame
+    linkCOM(1:4,1) = L(1:4,1);
+    linkCOM(1:4,2) = simplify(T{2}*L(1:4,2));
+    linkCOM(1:4,3) = simplify(T{3}*L(1:4,3));
+    linkCOM(1:4,4) = simplify(T{4}*L(1:4,4));
+    linkCOM(1:4,5) = simplify(T{5}*L(1:4,5));
+    linkCOM(1:4,6) = simplify(T{6}*L(1:4,6));
+    linkCOM(1:4,7) = simplify(T{7}*L(1:4,7));
+    linkCOM = linkCOM(1:3,:);
 end
 
 function K = KE(Jv,Jw,T,mass,cnt)
@@ -144,7 +174,7 @@ end
     
 function P = PE(T,mass,cnt)
 	g = [0; 0; 9.81];
-    r = COM(T,cnt);
+    r = LinkCenterOfMass(T,cnt);
     P = 0;
     for n=1:cnt
         P = P + mass(n)*g'*r(1:3,n);
