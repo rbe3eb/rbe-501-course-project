@@ -285,4 +285,81 @@ function tau = eulerLagrange(L, q, dq)
     L2 = diff(L, q);
     tau = L1 - L2;
 end
+
+% Generate trajectory in joint space
+function [q,dq,ddq,p,dp,ddp] = jointSpaceTraj(J,dJ,X,V,tspan)
+    % Trajectory polynomial
+    qEqn = sym(zeros(7,1)); 
+    dqEqn = sym(zeros(7,1)); 
+    ddqEqn = sym(zeros(7,1));
+    % initial and final joint position
+    qif = [IK([300; 450]), IK([-300; 450])];
+    % Initial and final joint velocities
+    dqif = [IVK(J, [0; 0]), IVK(J, [0; 0])];
+    % Create polynomial
+    [qEqn(1),dqEqn(1),ddqEqn(1)] = generatePoly(qif(1,:), dqif(1,:), tspan);
+    [qEqn(2),dqEqn(2),ddqEqn(2)] = generatePoly(qif(2,:), dqif(2,:), tspan);
+    % Generate positions from polynomial
+    [q,dq,ddq,p,dp,ddp] = trajFromJointPoly(qEqn,dqEqn,ddqEqn,J,dJ,tspan);
+end
+
+% Generate polynomial for trajectory
+function [qEqn,dqEqn,ddqEqn] = generatePoly(q, dq, tspan)
+    syms t a0 a1 a2 a3 real
+    % Polynomial trajectory
+    qEqn = a0 + (a1*t) + (a2*t^2) + (a3*t^3);
+    dqEqn = diff(qEqn, t);
+    ddqEqn = diff(dqEqn, t);
+    % Plug in initial conditions
+    qi = subs(qEqn, t, tspan(1));
+    dqi = subs(dqEqn, t, tspan(1));
+    qf = subs(qEqn, t, tspan(end));
+    dqf = subs(dqEqn, t, tspan(end));
+    % Solve for coefficients
+    eqn = [qi==q(1), dqi==dq(1), qf==q(2), dqf==dq(2)];
+    [c0, c1, c2, c3] = solve(eqn, [a0,a1,a2,a3]);
+    % Final trajectory equations
+    qEqn = subs(qEqn, [a0,a1,a2,a3], [c0,c1,c2,c3]);
+    dqEqn = subs(dqEqn, [a0,a1,a2,a3], [c0,c1,c2,c3]);
+    ddqEqn = subs(ddqEqn, [a0,a1,a2,a3], [c0,c1,c2,c3]);
+end
+
+% Compute joint values given end-effector position
+function [q] = IK(eePos,eFlag)
+    L1 = 300; L2 = 300;
+    q = zeros(2,1);
+    x = eePos(1); y = eePos(2);
+    
+    D = (x^2 + y^2 - L1^2 - L2^2) / (2*L1*L2);
+    q(2) = atan2(eFlag*sqrt(1 - D^2),D);
+    q(1) = atan2(y,x) - atan2(L2*sin(q(2)),L1 + L2*cos(q(2)));
+end
+
+% Compute joint velocities given end-effector velocity
+function [dq] = IVK(J, eeVel)
+    dq = pinv(J)*eeVel;
+end
+
+% Compute joint acceleration given end-effector acceleration
+function [ddq] = IAK(J,dJ,dq,a)
+    ddq = pinv(J)*(a - (dJ*dq));
+end
+
+% Compute end-effector position given joint values
+function [pos] = FK(q)
+    L1 = 300; L2 = 300;
+    pos = zeros(2,1);
+    pos(1) = L1*cos(q(1)) + L2*cos(q(1) + q(2));
+    pos(2) = L1*sin(q(1)) + L2*sin(q(1) + q(2));
+end
+
+% Compute end-effector velocity given joint velocities
+function [vel] = FVK(J,dqc)
+    vel = J*dqc;
+end
+
+% Compute end-effector acceleration given joint accelerations
+function [accel] = FAK(J,dq,dJ,ddq)
+    accel = dJ*dq + J*ddq;
+end
     
