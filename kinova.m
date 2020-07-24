@@ -1,5 +1,13 @@
 function [] = kinova()
     clc; clear;
+    syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
+        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
+    
+    % End-Effector mass
+    gripperMass = 0.9; interfaceMass = 0.364;
+    % Link masses
+    mass = [1.377, 1.1636, 1.1636, 0.930, 0.678, 0.678, ...
+        gripperMass + interfaceMass];
     
     % Compute homogeneous transformations
     T = hTran();
@@ -10,10 +18,10 @@ function [] = kinova()
     % Compute Jacobian matrix
     [Jv, Jw] = Jacobian(T, linkCOM);
     % Compute kinetic energy
-	K = KE(Jv,Jw,T,I);
+	K = kineticEnergy(Jv,Jw,T,I,mass);
     % Compute potential energy
-	P = PE(linkCOM);    
-    L = simplify(K - P);
+	P = potentialEnergy(linkCOM,mass);    
+    L = K - P;
     % Compute torque
     tau = [eulerLagrange(L,q1,dq1); eulerLagrange(L,q2,dq2); ...
         eulerLagrange(L,q3,dq3); eulerLagrange(L,q4,dq4); ...
@@ -141,13 +149,8 @@ function linkCOM = LinkCenterOfMass(T)
     linkCOM = linkCOM(1:3,:);
 end
 
-function K = KE(Jv,Jw,T,I)
+function K = kineticEnergy(Jv,Jw,T,I,mass)
     syms dq1 dq2 dq3 dq4 dq5 dq6 dq7 real;
-    % End-Effector mass
-    gripperMass = 0.9; interfaceMass = 0.364;
-    % Link masses
-    mass = [1.377, 1.1636, 1.1636, 0.930, 0.678, 0.678, ...
-        gripperMass + interfaceMass];
     
     dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
 	M = sym(zeros(7,7));
@@ -158,7 +161,7 @@ function K = KE(Jv,Jw,T,I)
             T{n}(1:3,1:3)'*Jw{n});
     end
     % Compute kinetic energy
-    K = simplify((1/2)*dq'*M*dq);
+    K = (1/2)*dq'*M*dq;
 end
 
 % Collect inertial tensors
@@ -201,43 +204,12 @@ function [I] = inertialTensor()
     end
 end
     
-function P = PE(linkCOM)
+function P = potentialEnergy(linkCOM,mass)
 	g = [0; 0; 9.81];
     P = 0;
     for n=1:7
         P = P + mass(n)*g'*linkCOM(1:3,n);
     end
-end
-
-function tau =  torqueMatrix(K,P)
-    syms q1 q2 q3 q4 q5 q6 ...
-        dq1 dq2 dq3 dq4 dq5 dq6 ...
-        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 real;
-    q = [q1; q2; q3; q4; q5; q6];
-    dq = [dq1; dq2; dq3; dq4; dq5; dq6];
-    ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6];
-    
-    L = simplify(K-P);
-	dl_dq = derivative(L,q);
-	dl_ddq = derivative(L,dq);
-	dl_ddqdt = compute_velocity(dl_ddq,dq,ddq);
-	tau = dl_ddqdt - dl_dq';
-	tau = simplify(tau);
-end
-
-% derivative
-function dldq = derivative(l,q)
-    for i = 1:length(q)
-        dldq(:,i) = diff(l,q(i));
-    end
-    dldq = simplify(dldq);
-end
-
-function vel = compute_velocity(p,q,dq)
-    for i = 1:length(q)
-        dpdq(:,i) = diff(p,q(i))*dq(i);
-    end
-    vel = simplify(expand(sum(dpdq,2)));
 end
 
 function M = mMatrix(tau)
@@ -315,6 +287,6 @@ function tau = eulerLagrange(L, q, dq)
         ddq1, ddq2, ddq3, ddq4, ddq5, ddq6, ddq7]);
     
     L2 = diff(L, q);
-    tau = simplify(L1 - L2);
+    tau = L1 - L2;
 end
     
