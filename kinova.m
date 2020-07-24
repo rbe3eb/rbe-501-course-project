@@ -25,7 +25,7 @@ function [] = kinova()
     % Compute torque
     tau = [eulerLagrange(L,q1,dq1); eulerLagrange(L,q2,dq2); ...
         eulerLagrange(L,q3,dq3); eulerLagrange(L,q4,dq4); ...
-        eulerLagrange(L,q5,dq5); eulerLagrange(L,q6,dq6) ...
+        eulerLagrange(L,q5,dq5); eulerLagrange(L,q6,dq6); ...
         eulerLagrange(L,q7,dq7)];
     M = mMatrix(tau); % Intertia matrix
     G = gMatrix(tau); % Gravity matrix
@@ -213,23 +213,19 @@ function P = potentialEnergy(linkCOM,mass)
 end
 
 function M = mMatrix(tau)
-    M1 = mMatrixCol(tau(1));
-    M2 = mMatrixCol(tau(2));
-    M3 = mMatrixCol(tau(3));
-    M4 = mMatrixCol(tau(4));
-    M5 = mMatrixCol(tau(5));
-    M6 = mMatrixCol(tau(6));
-    M7 = mMatrixCol(tau(7));
-    M = [M1; M2; M3; M4; M5; M6; M7];
-    M = simplify(expand(M));
+    M = cell(7,1);
+    parfor n=1:7
+        M{n} = mMatrixCol(tau(n));
+    end
+    M = [M{1}; M{2}; M{3}; M{4}; M{5}; M{6}; M{7}];
 end
 
 function M = mMatrixCol(tau)
     syms ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6; ddq7];
     m = sym([]);
-    for n=1:7
-    m(n) = simplify(tau - subs(tau,ddq(n),0))/ddq(n);
+    parfor n=1:7
+        m(n) = tau - subs(tau,ddq(n),0)/ddq(n);
     end
     M = [m(1), m(2), m(3), m(4), m(5), m(6), m(7)];
 end
@@ -249,19 +245,19 @@ function C = cMatrix(tau,M,G)
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     %The coriolis/cetripetal coupling vector is the result of
     % subtracting inertia and gravity portions from tau.
-    C1 = simplify(expand(tau(1) - M(1,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+    C1 = (expand(tau(1) - M(1,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
         ddq7].' - G(1)));
-    C2 = simplify(expand(tau(2) - M(2,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+    C2 = (expand(tau(2) - M(2,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
         ddq7].' - G(2)));
-    C3 = simplify(expand(tau(3) - M(3,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+    C3 = (expand(tau(3) - M(3,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
         ddq7].' - G(3)));
-    C4 = simplify(expand(tau(4) - M(4,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+    C4 = (expand(tau(4) - M(4,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
         ddq7].' - G(4)));
-    C5 = simplify(expand(tau(5) - M(5,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+    C5 = (expand(tau(5) - M(5,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
         ddq7].' - G(5)));
-    C6 = simplify(expand(tau(6) - M(6,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+    C6 = (expand(tau(6) - M(6,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
         ddq7].' - G(6)));
-    C7 = simplify(expand(tau(7) - M(7,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+    C7 = (expand(tau(7) - M(7,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
         ddq7].' - G(7)));
     C = [C1; C2; C3; C4; C5; C6; C7];
 end
