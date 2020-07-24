@@ -325,41 +325,51 @@ function [qEqn,dqEqn,ddqEqn] = generatePoly(q, dq, tspan)
 end
 
 % Compute joint values given end-effector position
-function [q] = IK(eePos,eFlag)
-    L1 = 300; L2 = 300;
-    q = zeros(2,1);
-    x = eePos(1); y = eePos(2);
-    
-    D = (x^2 + y^2 - L1^2 - L2^2) / (2*L1*L2);
-    q(2) = atan2(eFlag*sqrt(1 - D^2),D);
-    q(1) = atan2(y,x) - atan2(L2*sin(q(2)),L1 + L2*cos(q(2)));
+function curr_q = IK(Jv,T,pDes)
+    syms q1 q2 q3 q4 q5 q6 q6 real;
+    q = [q1; q2; q3; q4; q5; q6; q7];
+    curr_q = zeros(7,1);
+    curr_p = FK(T,curr_q);
+	n = 0;
+    epsilon = 0.00001;
+    while ((norm(pDes - curr_p)) > epsilon)
+        % Evaluate jacobian given current joint values
+        curr_Jv = eval(subs(Jv, q, curr_q));
+        % Evaluate position given current joint values
+        curr_p = eval(subs(T(1:3,4),q,curr_q));
+        % Find the position error
+        pErr = pDes - curr_p;
+        % Determine desired change in joint values
+        qDelta = pinv(curr_Jv)*pErr;
+        % Update joint values
+        curr_q = curr_q + qDelta;
+        n = n + 1;
+    end
 end
 
 % Compute joint velocities given end-effector velocity
-function [dq] = IVK(J, eeVel)
-    dq = pinv(J)*eeVel;
+function [dq] = IVK(J,dp)
+    dq = pinv(J)*dp;
 end
 
 % Compute joint acceleration given end-effector acceleration
-function [ddq] = IAK(J,dJ,dq,a)
-    ddq = pinv(J)*(a - (dJ*dq));
+function [ddq] = IAK(J,dJ,dq,ddp)
+    ddq = pinv(J)*(ddp - (dJ*dq));
 end
 
 % Compute end-effector position given joint values
-function [pos] = FK(q)
-    L1 = 300; L2 = 300;
-    pos = zeros(2,1);
-    pos(1) = L1*cos(q(1)) + L2*cos(q(1) + q(2));
-    pos(2) = L1*sin(q(1)) + L2*sin(q(1) + q(2));
+function [p] = FK(T,q)
+    p = eval(subs(T(1:3,4),[q1,q2,q3,q4,q5,q6,q7],q'));
+    p = p(1:3,1);
 end
 
 % Compute end-effector velocity given joint velocities
-function [vel] = FVK(J,dqc)
-    vel = J*dqc;
+function [dp] = FVK(J,dq)
+    dp = J*dq;
 end
 
 % Compute end-effector acceleration given joint accelerations
-function [accel] = FAK(J,dq,dJ,ddq)
-    accel = dJ*dq + J*ddq;
+function [ddp] = FAK(J,dJ,dq,ddq)
+    ddp = dJ*dq + J*ddq;
 end
     
