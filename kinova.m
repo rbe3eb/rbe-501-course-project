@@ -3,13 +3,22 @@ function [] = kinova()
     
     % Compute homogeneous transformations
     T = hTran();
+    % Compute link centers of mass
+    linkCOM = LinkCenterOfMass(T);
     % Collect inertia tensor
     I = inertialTensor();
     % Compute Jacobian matrix
-    [Jv, Jw] = Jacobian(T);
-	K = KE(Jv,Jw,T,I); % Kinetic Energy
-	P = PE(T); % Potential Energy
-    tau = torqueMatrix(K,P); % Torque Matrix
+    [Jv, Jw] = Jacobian(T, linkCOM);
+    % Compute kinetic energy
+	K = KE(Jv,Jw,T,I);
+    % Compute potential energy
+	P = PE(linkCOM);    
+    L = simplify(K - P);
+    % Compute torque
+    tau = [eulerLagrange(L,q1,dq1); eulerLagrange(L,q2,dq2); ...
+        eulerLagrange(L,q3,dq3); eulerLagrange(L,q4,dq4); ...
+        eulerLagrange(L,q5,dq5); eulerLagrange(L,q6,dq6) ...
+        eulerLagrange(L,q7,dq7)];
     M = mMatrix(tau); % Intertia matrix
     G = gMatrix(tau); % Gravity matrix
     C = cMatrix(tau,M,G); % Centrifugal and coriolis matrix
@@ -77,9 +86,8 @@ function T = hTran()
     T{7} = simplify(T01*T12*T23*T34*T45*T56*T67*T7e);
 end
 
-function [Jv, Jw] = Jacobian(T)
+function [Jv, Jw] = Jacobian(T, linkCOM)
     syms q1 q2 q3 q4 q5 q6 q7 real;
-    linkCOM = LinkCenterOfMass(T);
     % Linear velocity jacobian at each frame center of mass
     jv1 = simplify(jacobian(linkCOM(1:3,1), [q1,q2,q3,q4,q5,q6,q7]));
     jv2 = simplify(jacobian(linkCOM(1:3,2), [q1,q2,q3,q4,q5,q6,q7]));
@@ -149,6 +157,7 @@ function K = KE(Jv,Jw,T,I)
     	M = M + (mass(n)*Jv{n}'*Jv{n}) + (Jw{n}'*T{n}(1:3,1:3)*I{n}* ...
             T{n}(1:3,1:3)'*Jw{n});
     end
+    % Compute kinetic energy
     K = simplify((1/2)*dq'*M*dq);
 end
 
@@ -192,12 +201,11 @@ function [I] = inertialTensor()
     end
 end
     
-function P = PE(T,mass,cnt)
+function P = PE(linkCOM)
 	g = [0; 0; 9.81];
-    r = LinkCenterOfMass(T,cnt);
     P = 0;
-    for n=1:cnt
-        P = P + mass(n)*g'*r(1:3,n);
+    for n=1:7
+        P = P + mass(n)*g'*linkCOM(1:3,n);
     end
 end
 
@@ -239,49 +247,74 @@ function M = mMatrix(tau)
     M4 = mMatrixCol(tau(4));
     M5 = mMatrixCol(tau(5));
     M6 = mMatrixCol(tau(6));
-    M = [M1; M2; M3; M4; M5; M6];
+    M7 = mMatrixCol(tau(7));
+    M = [M1; M2; M3; M4; M5; M6; M7];
     M = simplify(expand(M));
 end
-    
+
 function M = mMatrixCol(tau)
-    syms ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 real;
-    ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6];
-    m = cell(6,1);
-    for n=1:6
-        m{n} = simplify((tau - subs(tau,ddq(n),0))/ddq(n));
+    syms ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
+    ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6; ddq7];
+    m = sym([]);
+    for n=1:7
+    m(n) = simplify(tau - subs(tau,ddq(n),0))/ddq(n);
     end
-    M = [m{1} m{2} m{3} m{4} m{5} m{6}];
+    M = [m(1), m(2), m(3), m(4), m(5), m(6), m(7)];
 end
-    
+
 function G = gMatrix(tau)
-    syms dq1 dq2 dq3 dq4 dq5 dq6 ...
-    ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 real;
-    dq = [dq1; dq2; dq3; dq4; dq5; dq6];
-    ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6];
-        
+    syms dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
+        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
+    dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
+    ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6; ddq7];
     %The gravity matrix is all terms not multiplied by dq or ddq.
-    G = subs(tau, {ddq(1),ddq(2),ddq(3),ddq(4),ddq(5),ddq(6), ...
-        dq(1),dq(2),dq(3),dq(4),dq(5),dq(6)},{zeros(1,12)});   
+    G = subs(tau, {ddq(1),ddq(2),ddq(3),ddq(4),ddq(5),ddq(6),ddq(7), ...
+        dq(1),dq(2),dq(3),dq(4),dq(5),dq(6),dq(7)},{zeros(1,12)});
 end
-    
+
 function C = cMatrix(tau,M,G)
-    syms q1 q2 q3 q4 q5 q6 ...
-        dq1 dq2 dq3 dq4 dq5 dq6 ...
-        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 real;
-    %The coriolis/cetripetal coupling vector is the result of subtracting
-    %inertia and gravity portions from tau.
-    C1 = simplify(expand(tau(1) - M(1,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ...
-        ddq6].' - G(1)));
-    C2 = simplify(expand(tau(2) - M(2,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ...
-        ddq6].' - G(2)));
-    C3 = simplify(expand(tau(3) - M(3,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ...
-        ddq6].' - G(3)));
-    C4 = simplify(expand(tau(4) - M(4,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ...
-        ddq6].' - G(4)));
-    C5 = simplify(expand(tau(5) - M(5,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ...
-        ddq6].' - G(5)));
-    C6 = simplify(expand(tau(6) - M(6,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ...
-        ddq6].' - G(6)));
-    C = [C1;C2;C3;C4;C5;C6];
+    syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
+        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
+    %The coriolis/cetripetal coupling vector is the result of
+    % subtracting inertia and gravity portions from tau.
+    C1 = simplify(expand(tau(1) - M(1,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+        ddq7].' - G(1)));
+    C2 = simplify(expand(tau(2) - M(2,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+        ddq7].' - G(2)));
+    C3 = simplify(expand(tau(3) - M(3,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+        ddq7].' - G(3)));
+    C4 = simplify(expand(tau(4) - M(4,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+        ddq7].' - G(4)));
+    C5 = simplify(expand(tau(5) - M(5,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+        ddq7].' - G(5)));
+    C6 = simplify(expand(tau(6) - M(6,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+        ddq7].' - G(6)));
+    C7 = simplify(expand(tau(7) - M(7,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+        ddq7].' - G(7)));
+    C = [C1; C2; C3; C4; C5; C6; C7];
+end
+
+function tau = eulerLagrange(L, q, dq)
+    syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
+        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
+    syms th1(t) th2(t) th3(t) th4(t) th5(t) th6(t) th7(t);
+    
+    L_ddq = diff(L, dq);
+    L_t = subs(L_ddq,[q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 ...
+        dq7], [th1, th2, th3, th4, th5, th6, th7, diff(th1(t),t), ...
+        diff(th2(t),t), diff(th3(t),t), diff(th4(t),t), diff(th5(t),t), ...
+        diff(th6(t), t), diff(th7(t), t)]);
+    L_dt = diff(L_t, t);
+    
+    L1 = subs(L_dt,[th1, th2, th3, th4, th5, th6, th7, diff(th1(t),t), ...
+        diff(th2(t),t), diff(th3(t),t), diff(th4(t),t), diff(th5(t),t), ...
+        diff(th6(t),t), diff(th7(t),t), diff(th1(t),t,t), ...
+        diff(th2(t),t,t), diff(th3(t),t,t), diff(th4(t),t,t), ...
+        diff(th5(t),t,t), diff(th6(t),t,t), diff(th7(t),t,t),], ...
+        [q1, q2, q3, q4, q5, q6, q7, dq1, dq2, dq3, dq4, dq5, dq6, dq7, ...
+        ddq1, ddq2, ddq3, ddq4, ddq5, ddq6, ddq7]);
+    
+    L2 = diff(L, q);
+    tau = simplify(L1 - L2);
 end
     
