@@ -15,21 +15,38 @@ function [] = kinova()
     linkCOM = LinkCenterOfMass(T);
     % Collect inertia tensor
     I = inertialTensor();
-    % Compute Jacobian matrix
-    [Jv, Jw] = Jacobian(T, linkCOM);
-    % Compute kinetic energy
-	K = kineticEnergy(Jv,Jw,T,I,mass);
-    % Compute potential energy
-	P = potentialEnergy(linkCOM,mass);    
-    L = K - P;
-    % Compute torque
-    tau = [eulerLagrange(L,q1,dq1); eulerLagrange(L,q2,dq2); ...
-        eulerLagrange(L,q3,dq3); eulerLagrange(L,q4,dq4); ...
-        eulerLagrange(L,q5,dq5); eulerLagrange(L,q6,dq6); ...
-        eulerLagrange(L,q7,dq7)];
-    M = mMatrix(tau); % Intertia matrix
-    G = gMatrix(tau); % Gravity matrix
-    C = cMatrix(tau,M,G); % Centrifugal and coriolis matrix
+    % Compute Jacobian matrix at each link' center of mass
+    [Jv_COM, Jw_COM] = JacobianCOM(T, linkCOM);
+    % Compute Jacobian matrix at each link's tip
+    [Jv, Jw] = Jacobian(T);
+    
+%     % Compute kinetic energy
+% 	K = kineticEnergy(Jv_COM,Jw_COM,T,I,mass);
+%     % Compute potential energy
+% 	P = potentialEnergy(linkCOM,mass);    
+%     L = K - P;
+%     % Compute torque
+%     tau = [eulerLagrange(L,q1,dq1); eulerLagrange(L,q2,dq2); ...
+%         eulerLagrange(L,q3,dq3); eulerLagrange(L,q4,dq4); ...
+%         eulerLagrange(L,q5,dq5); eulerLagrange(L,q6,dq6); ...
+%         eulerLagrange(L,q7,dq7)];
+%     % Compute Intertia matrix
+%     M = mMatrix(tau); 
+%     % Commpute Gravity matrix
+%     G = gMatrix(tau);
+%     % Centrifugal and coriolis matrix
+%     C = cMatrix(tau,M,G);
+    
+    % Motion Control: PD Plus Feed-Forward Controller
+    Xi = [0; 0; 1187] / 1000; 
+    Xf = [200; 0; 200] / 1000;
+    
+    dXi = [0; 0; 0] / 1000; 
+    dXf = [0; 0; 0] / 1000;
+    
+    ti = 0; tf = 10; % Initial and final time
+    [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf,T{end},Jv{end});
+    %jointSpaceMotionControl(M,C,G,Jv,X,dX,tspan); %jointSpaceTraj(J,dJ,X,V,tspan)
 end
 
 function T = hTran()
@@ -62,8 +79,8 @@ function T = hTran()
 
     % Frame 4 to frame 5
 	T45 = [cos(q5), -sin(q5), 0, 0
-        0, 0, 1, 0
-        -sin(q5), -cos(q5), 0, -0.1059
+        0, 0, 1, -0.2084
+        -sin(q5), -cos(q5), 0, -0.0064
         0, 0, 0, 1];
     
     % Frame 5 to frame 6
@@ -78,12 +95,21 @@ function T = hTran()
          -sin(q7), -cos(q7), 0, 0
          0, 0, 0, 1];
      
-     % Frame 7 to gripper frame
-     T7e = [1, 0, 0, 0
-            0, 1, 0, 0
-            0, 0, 1, 0.1250
-            0, 0, 0, 1];
-        
+     % Frame 7 to interface
+     T7i = [1, 0, 0, 0
+         0, -1, 0, 0
+         0, 0, -1, -0.0615
+         0, 0, 0, 1];
+     
+     % Interface frame to gripper frame
+     Tig = [0, 1, 0, 0
+         1, 0, 0, 0
+         0, 0, 1, 0.1493
+         0, 0, 0, 1];
+     
+    % Frame 7 to gripper frame
+    T6g = simplify(T67 * T7i * Tig);
+    
     % Calculate homogeneous transformations
     T{1} = simplify(T01);
     T{2} = simplify(T01*T12);
@@ -91,10 +117,10 @@ function T = hTran()
     T{4} = simplify(T01*T12*T23*T34);
     T{5} = simplify(T01*T12*T23*T34*T45);
     T{6} = simplify(T01*T12*T23*T34*T45*T56);
-    T{7} = simplify(T01*T12*T23*T34*T45*T56*T67*T7e);
+    T{7} = simplify(T01*T12*T23*T34*T45*T56*T6g);
 end
 
-function [Jv, Jw] = Jacobian(T, linkCOM)
+function [Jv_COM, Jw_COM] = JacobianCOM(T, linkCOM)
     syms q1 q2 q3 q4 q5 q6 q7 real;
     % Linear velocity jacobian at each frame center of mass
     jv1 = simplify(jacobian(linkCOM(1:3,1), [q1,q2,q3,q4,q5,q6,q7]));
@@ -116,8 +142,35 @@ function [Jv, Jw] = Jacobian(T, linkCOM)
     jw7 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), ...
         T{4}(1:3,3), T{5}(1:3,3), T{6}(1:3,3)];
    % Combine jacobian matrices
-   Jv = {jv1, jv2, jv3, jv4, jv5, jv6, jw7};
-   Jw = {jw1, jw2, jw3, jw4, jw5, jw6, jv7};
+   Jv_COM = {jv1, jv2, jv3, jv4, jv5, jv6, jv7};
+   Jw_COM = {jw1, jw2, jw3, jw4, jw5, jw6, jw7};
+end
+
+% Represent each link's jacobian at the tip of the link
+function [Jv, Jw] = Jacobian(T)
+    syms q1 q2 q3 q4 q5 q6 q7 real;
+    % Linear velocity jacobian at each frame center of mass
+    jv1 = simplify(jacobian(T{1}(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    jv2 = simplify(jacobian(T{2}(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    jv3 = simplify(jacobian(T{3}(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    jv4 = simplify(jacobian(T{4}(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    jv5 = simplify(jacobian(T{5}(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    jv6 = simplify(jacobian(T{6}(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    jv7 = simplify(jacobian(T{7}(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
+    % Angular velocity jacobian at each center of mass
+    jw1 = [[0; 0; 1], zeros(3,6)];
+    jw2 = [[0;0;1], T{1}(1:3,3), zeros(3,5)];
+    jw3 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), zeros(3,4)];
+    jw4 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), zeros(3,3)];
+    jw5 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), ...
+        T{4}(1:3,3), zeros(3,2)];
+    jw6 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), ...
+        T{4}(1:3,3), T{5}(1:3,3), zeros(3,1)];
+    jw7 = [[0;0;1], T{1}(1:3,3), T{2}(1:3,3), T{3}(1:3,3), ...
+        T{4}(1:3,3), T{5}(1:3,3), T{6}(1:3,3)];
+   % Combine jacobian matrices
+   Jv = {jv1, jv2, jv3, jv4, jv5, jv6, jv7};
+   Jw = {jw1, jw2, jw3, jw4, jw5, jw6, jw7};
 end
 
 % Represent each link's center of mass wrt the base frame
@@ -287,36 +340,37 @@ function tau = eulerLagrange(L, q, dq)
 end
 
 % Generate trajectory in joint space
-function [q,dq,ddq,p,dp,ddp] = jointSpaceTraj(J,dJ,X,V,tspan)
+function [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf,T,Jv)
     % Trajectory polynomial
     qEqn = sym(zeros(7,1)); 
     dqEqn = sym(zeros(7,1)); 
     ddqEqn = sym(zeros(7,1));
-    % initial and final joint position
-    qif = [IK([300; 450]), IK([-300; 450])];
+    % initial and final joint positions
+    qi = IK(Jv,T,Xi); %(Jv,T,pDes)
+    qf = IK(Jv,T,Xf);
     % Initial and final joint velocities
-    dqif = [IVK(J, [0; 0]), IVK(J, [0; 0])];
-    % Create polynomial
-    [qEqn(1),dqEqn(1),ddqEqn(1)] = generatePoly(qif(1,:), dqif(1,:), tspan);
-    [qEqn(2),dqEqn(2),ddqEqn(2)] = generatePoly(qif(2,:), dqif(2,:), tspan);
-    % Generate positions from polynomial
-    [q,dq,ddq,p,dp,ddp] = trajFromJointPoly(qEqn,dqEqn,ddqEqn,J,dJ,tspan);
+    dqi = IVK(J,dXi); % (J,dp)
+    dqf = IVK(J,dXf);
+    % Create polynomial equations for each joint
+    for n=1:7
+        [qEqn(n),dqEqn(n),ddqEqn(n)] = generatePoly(qi,qf,dqi,dqf,ti,tf);
+    end
 end
 
 % Generate polynomial for trajectory
-function [qEqn,dqEqn,ddqEqn] = generatePoly(q, dq, tspan)
+function [qEqn,dqEqn,ddqEqn] = generatePoly(qi,qf,dqi,dqf,ti,tf)
     syms t a0 a1 a2 a3 real
     % Polynomial trajectory
     qEqn = a0 + (a1*t) + (a2*t^2) + (a3*t^3);
     dqEqn = diff(qEqn, t);
     ddqEqn = diff(dqEqn, t);
     % Plug in initial conditions
-    qi = subs(qEqn, t, tspan(1));
-    dqi = subs(dqEqn, t, tspan(1));
-    qf = subs(qEqn, t, tspan(end));
-    dqf = subs(dqEqn, t, tspan(end));
+    qEqn_i = subs(qEqn, t, ti);
+    dqEqn_i = subs(dqEqn, t, ti);
+    qEqn_f = subs(qEqn, t, tf);
+    dqEqn_f = subs(dqEqn, t, tf);
     % Solve for coefficients
-    eqn = [qi==q(1), dqi==dq(1), qf==q(2), dqf==dq(2)];
+    eqn = [qi==qEqn_i, dqi==dqEqn_i, qf==qEqn_f, dqf==dqEqn_f];
     [c0, c1, c2, c3] = solve(eqn, [a0,a1,a2,a3]);
     % Final trajectory equations
     qEqn = subs(qEqn, [a0,a1,a2,a3], [c0,c1,c2,c3]);
@@ -326,23 +380,24 @@ end
 
 % Compute joint values given end-effector position
 function curr_q = IK(Jv,T,pDes)
-    syms q1 q2 q3 q4 q5 q6 q6 real;
+    syms q1 q2 q3 q4 q5 q6 q7 real;
     q = [q1; q2; q3; q4; q5; q6; q7];
-    curr_q = zeros(7,1);
+    curr_q = ones(7,1);
     curr_p = FK(T,curr_q);
 	n = 0;
     epsilon = 0.00001;
     while ((norm(pDes - curr_p)) > epsilon)
         % Evaluate jacobian given current joint values
         curr_Jv = eval(subs(Jv, q, curr_q));
-        % Evaluate position given current joint values
-        curr_p = eval(subs(T(1:3,4),q,curr_q));
-        % Find the position error
-        pErr = pDes - curr_p;
         % Determine desired change in joint values
-        qDelta = pinv(curr_Jv)*pErr;
+        qDelta = pinv(curr_Jv)*(pDes-curr_p);
         % Update joint values
         curr_q = curr_q + qDelta;
+        % Evaluate position given current joint values
+        curr_p = FK(T,curr_q);
+        disp([curr_q, qDelta]);
+        disp(newline);
+        disp(pDes-curr_p);
         n = n + 1;
     end
 end
@@ -359,6 +414,7 @@ end
 
 % Compute end-effector position given joint values
 function [p] = FK(T,q)
+    syms q1 q2 q3 q4 q5 q6 q7 real;
     p = eval(subs(T(1:3,4),[q1,q2,q3,q4,q5,q6,q7],q'));
     p = p(1:3,1);
 end
