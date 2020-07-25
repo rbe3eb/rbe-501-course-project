@@ -38,15 +38,20 @@ function [] = kinova()
 %     C = cMatrix(tau,M,G);
     
     % Motion Control: PD Plus Feed-Forward Controller
-    Xi = [0; 0; 1187] / 1000; 
+    Xi = [0; 200; 150] / 1000; 
     Xf = [200; 0; 200] / 1000;
     
     dXi = [0; 0; 0] / 1000; 
     dXf = [0; 0; 0] / 1000;
     
     ti = 0; tf = 10; % Initial and final time
+    % Derive joint space trajectory polynomial
     [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf,T{end},Jv{end});
-    %jointSpaceMotionControl(M,C,G,Jv,X,dX,tspan); %jointSpaceTraj(J,dJ,X,V,tspan)
+    jointSpaceMotionControl(M,C,G,Jv,qEqn,dqEqn,ddqEqn,tspan);
+end
+
+function [] = jointSpaceMotionControl(M,C,G,Jv,qEqn,dqEqn,ddqEqn,tspan)
+    
 end
 
 function T = hTran()
@@ -341,6 +346,7 @@ end
 
 % Generate trajectory in joint space
 function [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf,T,Jv)
+    syms q1 q2 q3 q4 q5 q6 q7 real;
     % Trajectory polynomial
     qEqn = sym(zeros(7,1)); 
     dqEqn = sym(zeros(7,1)); 
@@ -348,12 +354,15 @@ function [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf,T,Jv)
     % initial and final joint positions
     qi = IK(Jv,T,Xi); %(Jv,T,pDes)
     qf = IK(Jv,T,Xf);
+    % Jacobian
+    curr_Jvi = eval(subs(Jv,[q1,q2,q3,q4,q5,q6,q7],qi'));
+    curr_Jvf = eval(subs(Jv,[q1,q2,q3,q4,q5,q6,q7],qf'));
     % Initial and final joint velocities
-    dqi = IVK(J,dXi); % (J,dp)
-    dqf = IVK(J,dXf);
+    dqi = IVK(curr_Jvi,dXi); % (J,dp)
+    dqf = IVK(curr_Jvf,dXf);
     % Create polynomial equations for each joint
     for n=1:7
-        [qEqn(n),dqEqn(n),ddqEqn(n)] = generatePoly(qi,qf,dqi,dqf,ti,tf);
+        [qEqn(n),dqEqn(n),ddqEqn(n)] = generatePoly(qi(n),qf(n),dqi(n),dqf(n),ti,tf);
     end
 end
 
@@ -386,7 +395,7 @@ function curr_q = IK(Jv,T,pDes)
     curr_p = FK(T,curr_q);
 	n = 0;
     epsilon = 0.00001;
-    while ((norm(pDes - curr_p)) > epsilon)
+    while ((norm(pDes - curr_p)) > epsilon && n < 100)
         % Evaluate jacobian given current joint values
         curr_Jv = eval(subs(Jv, q, curr_q));
         % Determine desired change in joint values
