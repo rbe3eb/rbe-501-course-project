@@ -280,12 +280,12 @@ function linkCOM = LinkCenterOfMass(T)
         [endEffectorCOM; 1]]);
     % Link center of mass wrt the base frame
     linkCOM(1:4,1) = L(1:4,1);
-    linkCOM(1:4,2) = simplify(T{2}*L(1:4,2));
-    linkCOM(1:4,3) = simplify(T{3}*L(1:4,3));
-    linkCOM(1:4,4) = simplify(T{4}*L(1:4,4));
-    linkCOM(1:4,5) = simplify(T{5}*L(1:4,5));
-    linkCOM(1:4,6) = simplify(T{6}*L(1:4,6));
-    linkCOM(1:4,7) = simplify(T{7}*L(1:4,7));
+    linkCOM(1:4,2) = simplify(T{1}*L(1:4,2));
+    linkCOM(1:4,3) = simplify(T{2}*L(1:4,3));
+    linkCOM(1:4,4) = simplify(T{3}*L(1:4,4));
+    linkCOM(1:4,5) = simplify(T{4}*L(1:4,5));
+    linkCOM(1:4,6) = simplify(T{5}*L(1:4,6));
+    linkCOM(1:4,7) = simplify(T{6}*L(1:4,7));
     linkCOM = linkCOM(1:3,:);
 end
 
@@ -296,7 +296,7 @@ function K = kineticEnergy(Jv,Jw,T,I,mass)
     m = cell(7,1);
     
     % Compute inertia matrix
-    parfor n=1:7
+    for n=1:7
         R = T{n}(1:3,1:3);
         a = simplify(mass(n)*Jv{n}'*Jv{n});
         b = simplify((Jw{n}'*R*I{n}*R'*Jw{n}));
