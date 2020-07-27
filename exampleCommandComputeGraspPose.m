@@ -15,7 +15,7 @@ function exampleCommandComputeGraspPose(coordinator)
         %   together with machine / deep learning based on object
         %   poses.
 
-        coordinator.GraspPose = trvec2tform(coordinator.Parts{coordinator.NextPart}.centerPoint + [0 0 0.02])*axang2tform([0 1 0 pi]);
+        coordinator.GraspPose = trvec2tform(coordinator.Parts{coordinator.NextPart}.centerPoint + [0 0 0.05])*axang2tform([0 1 0 pi]);
 
         % Trigger Stateflow chart Event
         coordinator.FlowChart.nextAction; 

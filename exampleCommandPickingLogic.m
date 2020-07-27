@@ -18,9 +18,17 @@ function exampleCommandPickingLogic(coordinator)
             
             if coordinator.DetectedParts{coordinator.NextPart}.type == 1
                 coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 1;                    
-            else
+            else if coordinator.DetectedParts{coordinator.NextPart}.type == 2
                 coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 2;
+            else if coordinator.DetectedParts{coordinator.NextPart}.type == 3
+                coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 3;
+                end
+                end
             end
+            
+            %if coordinator.DetectedParts{coordinator.NextPart}.type == 4
+                %coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 4;
+            %end
             % Trigger Stateflow chart Event
             coordinator.FlowChart.partsDetected;
             return;

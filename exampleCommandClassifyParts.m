@@ -23,9 +23,10 @@ function exampleCommandClassifyParts(coordinator)
     % type 3 - mixing beaker placed back in center of work table
     
     if ~isempty(coordinator.DetectedParts)
-        coordinator.DetectedParts{1}.type = 1;
+        coordinator.DetectedParts{3}.type = 1;
         coordinator.DetectedParts{2}.type = 2;
-        coordinator.DetectedParts{3}.type = 2;
+        coordinator.DetectedParts{1}.type = 3;
+        coordinator.DetectedParts{1}.type = 4;
     end
 
    % Trigger Stateflow chart Event
