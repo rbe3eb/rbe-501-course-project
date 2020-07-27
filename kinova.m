@@ -1,5 +1,5 @@
 function [] = kinova()
-    %clc; clear;
+    clc; clear;
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     % Compute homogeneous transformations
@@ -293,15 +293,16 @@ function K = kineticEnergy(Jv,Jw,T,I,mass)
     syms dq1 dq2 dq3 dq4 dq5 dq6 dq7 real;
     
     dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
-	M = sym(zeros(7,7));
     m = cell(7,1);
     
     % Compute inertia matrix
     parfor n=1:7
-    	m{n} = simplify((mass(n)*Jv{n}'*Jv{n}) + (Jw{n}'*T{n}(1:3,1:3)*I{n}* ...
-            T{n}(1:3,1:3)'*Jw{n}));
+        R = T{n}(1:3,1:3);
+        a = simplify(mass(n)*Jv{n}'*Jv{n});
+        b = simplify((Jw{n}'*R*I{n}*R'*Jw{n}));
+    	m{n} = simplify(a + b);
     end
-    m = simplify(m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
+    M = simplify(m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
     % Compute kinetic energy
     K = simplify((1/2)*dq'*M*dq);
 end
