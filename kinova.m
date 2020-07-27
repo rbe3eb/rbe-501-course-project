@@ -2,7 +2,6 @@ function [] = kinova()
     %clc; clear;
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
-    M=eye(7);C=eye(7);G=zeros(7,1);
     % Compute homogeneous transformations
     T = hTran();
     % Compute Jacobian matrix at each link's tip
@@ -27,6 +26,7 @@ end
 function [M,C,G] = dynamicModel(T)
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
+
     % Link masses
     mass = [1.377, 1.1636, 1.1636, 0.930, 0.678, 0.678, 0.9 + 0.364];
     % Compute link centers of mass
@@ -39,18 +39,27 @@ function [M,C,G] = dynamicModel(T)
 	K = kineticEnergy(Jv_COM,Jw_COM,T,I,mass);
     % Compute potential energy
 	P = potentialEnergy(linkCOM,mass);    
-    L = K - P;
+    L = simplify(K - P);
     % Compute torque
-    tau = [eulerLagrange(L,q1,dq1); eulerLagrange(L,q2,dq2); ...
-        eulerLagrange(L,q3,dq3); eulerLagrange(L,q4,dq4); ...
-        eulerLagrange(L,q5,dq5); eulerLagrange(L,q6,dq6); ...
-        eulerLagrange(L,q7,dq7)];
+    tau = torque(L);
     % Compute Intertia matrix
     M = mMatrix(tau); 
     % Commpute Gravity matrix
     G = gMatrix(tau);
     % Centrifugal and coriolis matrix
     C = cMatrix(tau,M,G);
+end
+
+function [tau] = torque(L)
+    syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
+        ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
+    q = [q1; q2; q3; q4; q5; q6; q7];
+    dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
+    
+    tau = sym(zeros(7,1));
+    parfor n=1:7
+        tau(n,1) = eulerLagrange(L,q(n),dq(n));
+    end
 end
 
 function [] = jointSpaceMotionControl(qEqn,dqEqn,ddqEqn,HT,Jv,M,C,G,tspan) 
@@ -285,14 +294,16 @@ function K = kineticEnergy(Jv,Jw,T,I,mass)
     
     dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
 	M = sym(zeros(7,7));
+    m = cell(7,1);
     
     % Compute inertia matrix
-    for n=1:7
-    	M = M + (mass(n)*Jv{n}'*Jv{n}) + (Jw{n}'*T{n}(1:3,1:3)*I{n}* ...
-            T{n}(1:3,1:3)'*Jw{n});
+    parfor n=1:7
+    	m{n} = simplify((mass(n)*Jv{n}'*Jv{n}) + (Jw{n}'*T{n}(1:3,1:3)*I{n}* ...
+            T{n}(1:3,1:3)'*Jw{n}));
     end
+    m = simplify(m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
     % Compute kinetic energy
-    K = (1/2)*dq'*M*dq;
+    K = simplify((1/2)*dq'*M*dq);
 end
 
 % Collect inertial tensors
@@ -337,26 +348,27 @@ end
     
 function P = potentialEnergy(linkCOM,mass)
 	g = [0; 0; 9.81];
-    P = 0;
-    for n=1:7
-        P = P + mass(n)*g'*linkCOM(1:3,n);
+    P = 0; p = sym(zeros(7,1));
+    parfor n=1:7
+        p(n) = simplify(mass(n)*g'*linkCOM(1:3,n));
     end
+    P = simplify(p(1) + p(2) + p(3) + p(4) + p(5) + p(6) + p(7));
 end
 
 function M = mMatrix(tau)
     M = cell(7,1);
     parfor n=1:7
-        M{n} = mMatrixCol(tau(n));
+        M{n} = simplify(mMatrixCol(tau(n)));
     end
     M = [M{1}; M{2}; M{3}; M{4}; M{5}; M{6}; M{7}];
 end
 
-function M = mMatrixCol(tau)
+function M = mMatrixCol(taun)
     syms ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6; ddq7];
     m = sym([]);
     parfor n=1:7
-        m(n) = tau - subs(tau,ddq(n),0)/ddq(n);
+        m(n) = simplify(taun - subs(taun,ddq(n),0)/ddq(n));
     end
     M = [m(1), m(2), m(3), m(4), m(5), m(6), m(7)];
 end
@@ -367,30 +379,22 @@ function G = gMatrix(tau)
     dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
     ddq = [ddq1; ddq2; ddq3; ddq4; ddq5; ddq6; ddq7];
     %The gravity matrix is all terms not multiplied by dq or ddq.
-    G = subs(tau, {ddq(1),ddq(2),ddq(3),ddq(4),ddq(5),ddq(6),ddq(7), ...
-        dq(1),dq(2),dq(3),dq(4),dq(5),dq(6),dq(7)},{zeros(1,14)});
+    G = simplify(subs(tau, {ddq(1),ddq(2),ddq(3),ddq(4),ddq(5),ddq(6),ddq(7), ...
+        dq(1),dq(2),dq(3),dq(4),dq(5),dq(6),dq(7)},{zeros(1,14)}));
 end
 
-function C = cMatrix(tau,M,G)
+function c = cMatrix(tau,M,G)
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     %The coriolis/cetripetal coupling vector is the result of
     % subtracting inertia and gravity portions from tau.
-    C1 = ((tau(1) - M(1,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
-        ddq7].' - G(1)));
-    C2 = ((tau(2) - M(2,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
-        ddq7].' - G(2)));
-    C3 = ((tau(3) - M(3,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
-        ddq7].' - G(3)));
-    C4 = ((tau(4) - M(4,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
-        ddq7].' - G(4)));
-    C5 = ((tau(5) - M(5,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
-        ddq7].' - G(5)));
-    C6 = ((tau(6) - M(6,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
-        ddq7].' - G(6)));
-    C7 = ((tau(7) - M(7,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
-        ddq7].' - G(7)));
-    C = [C1; C2; C3; C4; C5; C6; C7];
+    c = cell(7,1);
+    
+    parfor n=1:7
+    	c{n} = simplify((tau(n) - M(n,:)*[ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ...
+            ddq7].' - G(n)));
+    end
+    C = [c{1}; c{2}; c{3}; c{4}; c{5}; c{6}; c{7}];
 end
 
 function tau = eulerLagrange(L, q, dq)
@@ -414,7 +418,7 @@ function tau = eulerLagrange(L, q, dq)
         ddq1, ddq2, ddq3, ddq4, ddq5, ddq6, ddq7]);
     
     L2 = diff(L, q);
-    tau = L1 - L2;
+    tau = simplify(L1 - L2);
 end
 
 % Generate trajectory in joint space
