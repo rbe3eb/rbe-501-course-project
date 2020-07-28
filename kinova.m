@@ -28,7 +28,7 @@ function [M,C,G] = dynamicModel(T)
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
 
     % Link masses
-    mass = [1.377, 1.1636, 1.1636, 0.930, 0.678, 0.678, 0.9 + 0.364];
+    mass = [1.377, 1.1636, 1.1636, 0.930, 0.678, 0.678, 1.4257];
     % Compute link centers of mass
     linkCOM = LinkCenterOfMass(T);
     % Collect inertia tensor
@@ -39,7 +39,7 @@ function [M,C,G] = dynamicModel(T)
 	K = kineticEnergy(Jv_COM,Jw_COM,T,I,mass);
     % Compute potential energy
 	P = potentialEnergy(linkCOM,mass);    
-    L = simplify(K - P);
+    L = simplify(expand(K - P));
     % Compute torque
     tau = torque(L);
     % Compute Intertia matrix
@@ -165,20 +165,18 @@ function T = hTran()
          -sin(q7), -cos(q7), 0, 0
          0, 0, 0, 1];
      
-     % Frame 7 to interface
-     T7i = [1, 0, 0, 0
-         0, -1, 0, 0
-         0, 0, -1, -0.0615
-         0, 0, 0, 1];
-     
-     % Interface frame to gripper frame
-     Tig = [0, 1, 0, 0
-         1, 0, 0, 0
-         0, 0, 1, 0.1493
-         0, 0, 0, 1];
-     
+    T7_ee = [1, 0, 0, 0
+        0, -1, 0, 0
+        0, 0, -1, -0.0615
+        0, 0, 0, 1];
+
+    Tee_g = [1, 0, 0, 0
+        0, 1, 0, 0
+        0, 0, 1, 0.1250
+        0, 0, 0, 1];
+
     % Frame 7 to gripper frame
-    T6g = simplify(T67 * T7i * Tig);
+    T6g = simplify(T67 * T7_ee * Tee_g);
     
     % Calculate homogeneous transformations
     T{1} = simplify(T01);
@@ -193,13 +191,13 @@ end
 function [Jv_COM, Jw_COM] = JacobianCOM(T, linkCOM)
     syms q1 q2 q3 q4 q5 q6 q7 real;
     % Linear velocity jacobian at each frame center of mass
-    jv1 = simplify(jacobian(linkCOM(1:3,1), [q1,q2,q3,q4,q5,q6,q7]));
-    jv2 = simplify(jacobian(linkCOM(1:3,2), [q1,q2,q3,q4,q5,q6,q7]));
-    jv3 = simplify(jacobian(linkCOM(1:3,3), [q1,q2,q3,q4,q5,q6,q7]));
-    jv4 = simplify(jacobian(linkCOM(1:3,4), [q1,q2,q3,q4,q5,q6,q7]));
-    jv5 = simplify(jacobian(linkCOM(1:3,5), [q1,q2,q3,q4,q5,q6,q7]));
-    jv6 = simplify(jacobian(linkCOM(1:3,6), [q1,q2,q3,q4,q5,q6,q7]));
-    jv7 = simplify(jacobian(linkCOM(1:3,7), [q1,q2,q3,q4,q5,q6,q7]));
+    jv1 = simplify(expand(jacobian(linkCOM(1:3,1), [q1,q2,q3,q4,q5,q6,q7])));
+    jv2 = simplify(expand(jacobian(linkCOM(1:3,2), [q1,q2,q3,q4,q5,q6,q7])));
+    jv3 = simplify(expand(jacobian(linkCOM(1:3,3), [q1,q2,q3,q4,q5,q6,q7])));
+    jv4 = simplify(expand(jacobian(linkCOM(1:3,4), [q1,q2,q3,q4,q5,q6,q7])));
+    jv5 = simplify(expand(jacobian(linkCOM(1:3,5), [q1,q2,q3,q4,q5,q6,q7])));
+    jv6 = simplify(expand(jacobian(linkCOM(1:3,6), [q1,q2,q3,q4,q5,q6,q7])));
+    jv7 = simplify(expand(jacobian(linkCOM(1:3,7), [q1,q2,q3,q4,q5,q6,q7])));
     % Angular velocity jacobian at each center of mass
     jw1 = [[0; 0; 1], zeros(3,6)];
     jw2 = [[0;0;1], T{1}(1:3,3), zeros(3,5)];
@@ -263,29 +261,22 @@ end
 % Represent each link's center of mass wrt the base frame
 function linkCOM = LinkCenterOfMass(T)
 	linkCOM = sym(zeros(4,7));
-    % Gripper center of mass wrt actuator 7 frame
-    gripperCOM = [0; 0; -0.057-61.5];
-    % Interface center of mass wrt actuator 7 frame
-    interfaceCOM = [-0.000093; 0.000132; -0.022905];
-    % Average center of mass of gripper and interface wrt actuator 7 frame
-    endEffectorCOM = (gripperCOM + interfaceCOM) / 2;
     % Link of center of mass wrt the precedent joint reference frame
-	L = sym([[-0.000648; -0.000166; 0.084487; 1], ...
-        [-0.000023; -0.010364; -0.073360; 1], ...
+	L = sym([[-0.000023; -0.010364; -0.073360; 1], ...
         [-0.000044; -0.099580; -0.013278; 1], ...
         [-0.000044; -0.006641; -0.117892; 1], ...
         [-0.000018; -0.075478; -0.015006; 1], ...
         [0.000001; -0.009432; -0.063883; 1], ...
         [0.000001; -0.045483; -0.009650; 1], ...
-        [endEffectorCOM; 1]]);
+        [-0.0001; 0.0057; 0.0764; 1]]);
     % Link center of mass wrt the base frame
-    linkCOM(1:4,1) = L(1:4,1);
-    linkCOM(1:4,2) = simplify(T{1}*L(1:4,2));
-    linkCOM(1:4,3) = simplify(T{2}*L(1:4,3));
-    linkCOM(1:4,4) = simplify(T{3}*L(1:4,4));
-    linkCOM(1:4,5) = simplify(T{4}*L(1:4,5));
-    linkCOM(1:4,6) = simplify(T{5}*L(1:4,6));
-    linkCOM(1:4,7) = simplify(T{6}*L(1:4,7));
+    linkCOM(1:4,1) = simplify(T{1}*L(1:4,1));
+    linkCOM(1:4,2) = simplify(T{2}*L(1:4,2));
+    linkCOM(1:4,3) = simplify(T{3}*L(1:4,3));
+    linkCOM(1:4,4) = simplify(T{4}*L(1:4,4));
+    linkCOM(1:4,5) = simplify(T{5}*L(1:4,5));
+    linkCOM(1:4,6) = simplify(T{6}*L(1:4,6));
+    linkCOM(1:4,7) = simplify(T{7}*L(1:4,7));
     linkCOM = linkCOM(1:3,:);
 end
 
@@ -298,8 +289,8 @@ function K = kineticEnergy(Jv,Jw,T,I,mass)
     % Compute inertia matrix
     for n=1:7
         R = T{n}(1:3,1:3);
-        a = simplify(mass(n)*Jv{n}'*Jv{n});
-        b = simplify((Jw{n}'*R*I{n}*R'*Jw{n}));
+        a = simplify(expand(mass(n)*Jv{n}'*Jv{n}));
+        b = simplify(expand((Jw{n}'*R*I{n}*R'*Jw{n})));
     	m{n} = simplify(a + b);
     end
     M = simplify(m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
@@ -310,32 +301,19 @@ end
 % Collect inertial tensors
 function [I] = inertialTensor()
     I = cell(7,1);
-    % Gripper moment of inertia wrt current frame
-    IxxGripper = 0.00418; IxyGripper = 0; IxzGripper = 0;
-    IyyGripper = 0.00518; IyzGripper = 0; IzzGripper = 0.00125;
-    % Interface moment of inertia wrt current frame
-    IxxInterface = 0.000214; IxyInterface = 0; IxzInterface = 0.000001;
-    IyyInterface = 0.000223; IyzInterface = -0.000002; IzzInterface = 0.000240;
-    % Combined moment of inertia of gripper and interface wrt current frame
-    IxxEE = IxxGripper + IxxInterface; 
-    IxyEE = IxyGripper + IxyInterface; 
-    IxzEE = IxzGripper + IxzInterface;
-    IyyEE = IyyGripper + IyyInterface;
-    IyzEE = IyzGripper + IyzInterface;
-    IzzEE = IzzGripper + IzzInterface;
     % Moment of inertia of each link wrt their center of mass
     Ixx = [0.004622, 0.004570 0.011088 0.010932 0.008147 0.001596 ...
-        0.001641 IxxEE];
+        0.001641 0.0084];
     Ixy = [0.000009, 0.000001 0.000005 0.000000 -0.000001 0.000000 ...
-        0.000000 IxyEE];
+        0.000000 -0.0000014];
     Ixz = [0.000060, 0.000002 0.000000 -0.000007 0.000000 0.000000 ...
-        0.000000 IxzEE];
+        0.000000 -0.000015];
     Iyy = [0.004495, 0.004831 0.001072 0.011127 0.000631 0.001607 ...
-        0.000410 IyyEE];
+        0.000410 0.00833024692];
     Iyz = [0.000009, 0.000448 -0.000691 0.000606 -0.000500 0.000256 ...
-        -0.000278 IyzEE];
+        -0.000278 0.00062127];
     Izz = [0.002079, 0.001409 0.011255 0.001043 0.008316 0.000399 ...
-        0.001641 IzzEE];
+        0.001641 0.00004636];
     Iyx = Ixy; 
     Izx = Ixz; 
     Izy = Iyz;
@@ -349,7 +327,7 @@ end
     
 function P = potentialEnergy(linkCOM,mass)
 	g = [0; 0; 9.81];
-    P = 0; p = sym(zeros(7,1));
+    p = sym(zeros(7,1));
     parfor n=1:7
         p(n) = simplify(mass(n)*g'*linkCOM(1:3,n));
     end
@@ -384,7 +362,7 @@ function G = gMatrix(tau)
         dq(1),dq(2),dq(3),dq(4),dq(5),dq(6),dq(7)},{zeros(1,14)}));
 end
 
-function c = cMatrix(tau,M,G)
+function C = cMatrix(tau,M,G)
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     %The coriolis/cetripetal coupling vector is the result of
