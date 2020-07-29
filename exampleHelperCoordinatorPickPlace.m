@@ -34,8 +34,9 @@ classdef exampleHelperCoordinatorPickPlace < handle
         NumDetectionRuns = 0;
         CollisionHelper
         PathHandle
-        HT = hTran();
-        Jv = Jacobian(HT);
+        HT = {};
+        com = {};
+        Jv = {};
     end
     
     methods
@@ -64,7 +65,13 @@ classdef exampleHelperCoordinatorPickPlace < handle
             obj.Figure.ShowMarker = false;
             hold on
             axis([-1 1 -1 1 -0.1 1.5]);
-            view(58,25);            
+            view(58,25);
+            
+            fprintf('\nHomogeneous Transformations...\n')
+            [obj.HT,obj.com] = hTran();
+            fprintf('\nJacobians...\n')
+            obj.Jv = Jacobian(obj.HT);
+            fprintf('\nDone!\n')
         end
         
     
