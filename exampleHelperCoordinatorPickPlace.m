@@ -34,7 +34,8 @@ classdef exampleHelperCoordinatorPickPlace < handle
         NumDetectionRuns = 0;
         CollisionHelper
         PathHandle
-        HT = cell(7,1);
+        HT = hTran();
+        Jv = Jacobian(HT);
     end
     
     methods

@@ -1,9 +1,8 @@
-
 % Compute joint values given end-effector position
-function curr_q = IK(Jv,T,pDes)
+function curr_q = IK(T,Jv,pDes,curr_q)
     syms q1 q2 q3 q4 q5 q6 q7 real;
     q = [q1; q2; q3; q4; q5; q6; q7];
-    curr_q = zeros(7,1);
+
     curr_p = FK(T,curr_q);
 	n = 1;
     epsilon = 0.00001;
