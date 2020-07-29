@@ -47,9 +47,9 @@ function exampleCommandBuildWorld(coordinator)
     TBox5 = trvec2tform([0.3 0.5 0.26]);
     %Main mixing beaker
     TBox2 = trvec2tform([0.4 0.15 0.28]);
-    %Top Shelf
-    TBox1 = trvec2tform([-0.05 0.55 0.62]);
-    TBox3 = trvec2tform([-0.25 0.55 0.62]);
+    %Table
+    TBox1 = trvec2tform([-0.05 0.55 0.28]);
+    TBox3 = trvec2tform([-0.25 0.55 0.28]);
     %Middle Shelf
     %TBox5 = trvec2tform([-0.25 0.55 0.44]);
     %TBox4 = trvec2tform([-0.05 0.55 0.44]);
@@ -68,9 +68,9 @@ function exampleCommandBuildWorld(coordinator)
     %box9.Pose = TBox9;
 
     % Set the part mesh and color
-    part1.mesh = box2;
+    part3.mesh = box2;
     part2.mesh = box3;
-    part3.mesh = box1;
+    part1.mesh = box1;
     part4.mesh = box4;
     part5.mesh = box5;
     %part6.mesh = box6;
@@ -78,9 +78,9 @@ function exampleCommandBuildWorld(coordinator)
     %part8.mesh = box8;
     %part9.mesh = box9;
 
-    part1.color = 'white';
+    part3.color = 'white';
     part2.color = 'r';
-    part3.color = 'blue';
+    part1.color = 'blue';
     part4.color = 'g';
     part5.color = 'y';
     %part6.color = 'purple';

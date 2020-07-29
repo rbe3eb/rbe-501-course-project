@@ -17,6 +17,7 @@ function exampleCommandPickingLogic(coordinator)
             % their old positions b=depending on their type
             
             if coordinator.DetectedParts{coordinator.NextPart}.type == 1
+               %coordinator.DetectedParts{coordinator.NextPart}.hold = 1;
                coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 1;                    
             else if coordinator.DetectedParts{coordinator.NextPart}.type == 2
                 coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 2;

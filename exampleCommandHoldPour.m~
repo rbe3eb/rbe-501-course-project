@@ -1,12 +1,6 @@
-function exampleCommandPickingLogic(coordinator)
-
-%CommandPickingLogic Determine which parts to pick next
-%   This command instructs the robot which parts to pick next based on the
-%   order of a preset list.
+function exampleCommandHoldPour(coordinator)% This class is for internal use and may be removed in a future release
 %
-% Copyright 2020 The MathWorks, Inc.
-
-       % Parts will be picked according to order in job.detectedParts list
+% Parts will be picked according to order in job.detectedParts list
         coordinator.NextPart = coordinator.NextPart + 1; 
         if coordinator.NextPart<=length(coordinator.Parts)               
             % Objects are placed on either belt1 or belt2 according to
@@ -16,7 +10,8 @@ function exampleCommandPickingLogic(coordinator)
             % poured, placed on the magnetic stirrer, or placed back in
             % their old positions b=depending on their type
             
-            if coordinator.DetectedParts{coordinator.NextPart}.type == 1
+            if coordinator.DetectedParts{coordinator.NextPart}.type == 1||2
+               coordinator.DetectedParts{coordinator.NextPart}.HoldConfig;
                coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 1;                    
             else if coordinator.DetectedParts{coordinator.NextPart}.type == 2
                 coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 2;
