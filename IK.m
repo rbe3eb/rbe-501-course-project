@@ -3,7 +3,7 @@ function curr_q = IK(T,Jv,Jw,pDes,oDes,currP,currO,curr_q)
     syms q1 q2 q3 q4 q5 q6 q7 real;
     q = [q1; q2; q3; q4; q5; q6; q7];
 
-    curr_q = curr_q';
+    curr_q = curr_q;
     curr_op = [currP; currO];
     J = [Jv; Jw];
     opDes = [pDes; oDes];
@@ -24,7 +24,8 @@ function curr_q = IK(T,Jv,Jw,pDes,oDes,currP,currO,curr_q)
         curr_q = curr_q + qDelta;
         % Evaluate position given current joint values
         curr_p = FK(T,curr_q);
-        curr_o = eval(subs(T(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],curr_q'));
+        curr_r = eval(subs(T(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],curr_q'));
+        curr_o = rotm2Vector(curr_r);
         curr_op = [curr_p; curr_o];
         n = n + 1;
     end
