@@ -6,6 +6,4 @@ function [C] = cMatrix(q)
     q5 = q(5);
     q6 = q(6);
     q7 = q(7);
-    
-    C = [];
-end
+    end
