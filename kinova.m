@@ -324,8 +324,8 @@ function [K,M] = kineticEnergy(Jv,Jw,T,I,mass)
     a = 0; b = 0;
     for n=1:7
         a = ((mass(n)*Jv{n}'*Jv{n}));
-        b = (((Jw{n}'*I*Jw{n})));
-    	m{n} = a;
+        b = (((Jw{n}'*I{n}*Jw{n})));
+    	m{n} = a+b;
     end
     M = (m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
     % Compute kinetic energy
