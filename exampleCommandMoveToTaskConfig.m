@@ -1,65 +1,56 @@
 function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tolerance, avoidCollisions)
-syms q1 q2 q3 q4 q5 q6 q7 real;
-
-%CommandMoveToTaskConfig Move the manipulator to a task-space position
-%   This command moves the manipulator from its current pose to a
-%   desired task-space pose. The move is executed using a nonlinear model
-%   predictive control to generate a collision-free reference trajectory.
-%   The trajectory is simulated using a model of the robot under
-%   joint-space motion control. This also updates the visualization. Note
-%   that the simulation may appear to pause during motions; this occurs
-%   when the controller is computing a new reference trajectory.
-%
-% Copyright 2020 The MathWorks, Inc.
-
-        %   Execute the command, which simulates robot motion from the current to the target pose
-        %   To execute this motion, the command calls a helper
-        %   function, exampleHelperPlanExecuteTrajectoryPickPlace, that
-        %   plans an optimized reference trajectory using a nonlinear
-        %   MPC solver and then simulates the motion of the robot under
-        %   joint-space position control. The helper function also
-        %   ensures that the visualization is updated accordingly.
+        syms q1 q2 q3 q4 q5 q6 q7 real;
         
+        HT = coordinator.HT;
+        Teg = coordinator.Teg;
+        Jv = coordinator.Jv;
+        Jw = coordinator.Jw;
+        MotionModel = coordinator.MotionModel;
         
-        coordinator.HomeRobotTaskConfig = trvec2tform([0.4, 0, 0.6])*axang2tform([0 1 0 pi]);
 
         % Current robot joint configuration
         jointInit = coordinator.CurrentRobotJConfig;
         currentRobotJConfig = wrapToPi(jointInit');
         
         % Final (desired) end-effector pose
-        currP = subs(coordinator.HT{end}(1:3,4),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
-        currR = subs(coordinator.HT{end}(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
+        currP = subs(HT{end}(1:3,4),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
+        currR = subs(HT{end}(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
         
         desR = (taskConfig(1:3,1:3));
         desP = taskConfig(1:3,4);
-        jointFinal = IK(coordinator.HT{end},coordinator.Jv{end},coordinator.Jw{end},desP,desR,currP,currR,jointInit);
+        jointFinal = IK(HT{end},Jv{end},Jw{end},desP,desR,currP,currR,jointInit);
         
-        qi = jointInit; qf = jointFinal;
+        qi = jointInit'; qf = jointFinal;
         dqi = zeros(7,1); dqf = zeros(7,1);
+        ti = 0; tf = 5;
         
-        [qEqn, dqEqn, ddqEqn] = jointSpaceTrajectory(coordinator.HT{end},coordinator.Jv{end},qi,dqi,qf,dqf,ti,tf);
-        %% Execute the trajectory using low-fidelity simulation
+        [qEqn, dqEqn, ddqEqn] = jointSpaceTrajectory(HT{end},Jv{end},qi,dqi,qf,dqf,ti,tf);
+        
+        initState = [qi; dqi];
+        
+        % Simulate motion jointSpaceMotionControl(qEqn,dqEqn,ddqEqn,HT,Jv,qi,dqi,ti,tf) 
+        [T,X] = ode15s(@(t,x) exampleHelperTimeBasedStateInputsPickPlace(t,x,MotionModel,qEqn,dqEqn,ddqEqn,HT,Teg,Jv), [ti tf], initState);
+        
+        % Forward kinematics for end-effector and gripper
+        cnt = size(T,1);
+        eeT = cell(cnt,1); gripperT = cell(cnt,1);
+        for n=1:cnt
+            q = X(n,1:7);
+            eeT{n} = eval(subs(HT{end},[q1,q2,q3,q4,q5,q6,q7],q));
+            gripperT{n} = eeT{n}*Teg;
+        end
 
-        targetStates = [positions;velocities;accelerations]'; 
-        targetTime = timestamp;
-        initState = [positions(:,1);velocities(:,1)]';
-        trajTimes = targetTime(1):coordinator.TimeStep:targetTime(end);
-
-        [~,robotStates] = ode15s(@(t,state) exampleHelperTimeBasedStateInputsPickPlace(coordinator.MotionModel, targetTime, targetStates, t, state), trajTimes, initState);
-
-        %% Visualize trajectory
         % Uncomment below to display all successful outputs
         % disp('Executing collision-free trajectory...')
-        visualizePath(coordinator,positions);
-        visualizeRobot(coordinator, robotStates, trajTimes);
+        visualizePath(coordinator,gripperT);
+        visualizeRobot(coordinator, X(:,1:7), eeT, T);
         
         % Deleta path on plot
         coordinator.PathHandle.Visible = 'off';
 
         % Update current robot configuration
-        coordinator.CurrentRobotJConfig = positions(:,end)';
-        coordinator.CurrentRobotTaskConfig = getTransform(coordinator.Robot, coordinator.CurrentRobotJConfig, coordinator.RobotEndEffector); 
+        coordinator.CurrentRobotJConfig = X(end,1:7);
+        coordinator.CurrentRobotTaskConfig = eeT{end}; 
 
         % Trigger Stateflow chart Event
         coordinator.FlowChart.taskConfigReached; 

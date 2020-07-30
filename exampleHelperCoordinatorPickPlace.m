@@ -38,6 +38,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
         com = {};
         Jv = {};
         Jw = {};
+        Teg = [];
     end
     
     methods
@@ -47,7 +48,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
             obj.RobotEndEffector = robotEndEffector;
             obj.CurrentRobotTaskConfig = getTransform(obj.Robot, obj.CurrentRobotJConfig, obj.RobotEndEffector);
             obj.TimeStep = 0.1; % Visualization time step
-            obj.MotionModel = jointSpaceMotionModel('RigidBodyTree', obj.Robot);
+            obj.MotionModel = jointSpaceMotionModel('RigidBodyTree', obj.Robot,'MotionType',"PDControl");
             obj.NumJoints = numel(obj.CurrentRobotJConfig);
             
             % Initialize collision checking
@@ -69,7 +70,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
             view(58,25);
             
             fprintf('\nHomogeneous Transformations...\n')
-            [obj.HT,obj.com] = hTran();
+            [obj.HT,obj.Teg,obj.com] = hTran();
             fprintf('\nJacobians...\n')
             [obj.Jv, obj.Jw] = Jacobian(obj.HT);
             fprintf('\nDone!\n')
@@ -128,15 +129,15 @@ classdef exampleHelperCoordinatorPickPlace < handle
         end
         
 
-        function visualizeRobot(obj, robotStates, trajTimes)
+        function visualizeRobot(obj, jointValues, eeT, t)
             % Visualize robot motion           
-            for k = 1:length(trajTimes)
-                configNow = robotStates(k,1:obj.NumJoints);
+            for k = 1:length(t)
+                configNow = jointValues(k,1:obj.NumJoints);
                 obj.Figure.Configuration = configNow;
                 obj.Figure.ShowMarker = false;
                 % Update current robot configuration
                 obj.CurrentRobotJConfig = configNow;
-                obj.CurrentRobotTaskConfig = getTransform(obj.Robot, obj.CurrentRobotJConfig, obj.RobotEndEffector);
+                obj.CurrentRobotTaskConfig = eeT{k};
                 % Visualize parts
                 if obj.PartOnRobot~=0
                     obj.Parts{obj.PartOnRobot}.mesh.Pose = obj.CurrentRobotTaskConfig * trvec2tform([0 0 0.02]);
@@ -147,13 +148,13 @@ classdef exampleHelperCoordinatorPickPlace < handle
             end
         end
         
-        function visualizePath(obj, positions)
-            poses = zeros(size(positions,2),3);
-            for i=1:size(positions,2)               
-                poseNow = getTransform(obj.Robot, positions(:,i)', obj.RobotEndEffector);
-                poses(i,:) = [poseNow(1,4), poseNow(2,4), poseNow(3,4)];
+        function visualizePath(obj, gripperT)
+            cnt = size(gripperT,1);
+            positions = zeros(cnt,3);
+            for n=1:cnt
+                positions(n,:) = gripperT{n}(1:3,4)';
             end
-            obj.PathHandle = plot3(poses(:,1), poses(:,2), poses(:,3),'r-','LineWidth',5);            
+            obj.PathHandle = plot3(positions(:,1), positions(:,2), positions(:,3),'r-','LineWidth',5);            
             drawnow;
         end
         

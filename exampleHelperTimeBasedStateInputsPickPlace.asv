@@ -1,4 +1,5 @@
 function dx = exampleHelperTimeBasedStateInputsPickPlace(t,x,motionModel,qEqn,dqEqn,ddqEqn,HT,Teg,Jv)
+    global tme eePos gripperT eeT;
     syms tt q1 q2 q3 q4 q5 q6 q7 real;
     
     % Compute current desired motion -> [position, velocity, acceleration]
@@ -14,6 +15,16 @@ function dx = exampleHelperTimeBasedStateInputsPickPlace(t,x,motionModel,qEqn,dq
     % Joint errors
     qErr = qDes - curr_q;
     dqErr = dqDes - curr_dq;
+    
+    % 
+    T7e = eval(subs(HT{end},[q1,q2,q3,q4,q5,q6,q7],curr_q'));
+    currGripperT = T7e*Teg;
+    currPos = FK(HT{end}, curr_q);
+    
+    eePos = [eePos; currPos'];
+    gripperT{end+1} = currGripperT;
+    eeT{end+1} = T7
+    tme = [tme, t];
     
     state = [curr_q; curr_dq];
     

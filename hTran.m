@@ -1,4 +1,4 @@
-function [T,com] = hTran()
+function [T,Teg,com] = hTran()
 	syms q1 q2 q3 q4 q5 q6 q7 real
     
     T = cell(7,1); com = sym(zeros(3,7));
@@ -60,7 +60,7 @@ function [T,com] = hTran()
         0, 0, -1, -0.0615
         0, 0, 0, 1];
 
-    Tee_g = [1, 0, 0, 0
+    Teg = [1, 0, 0, 0
         0, 1, 0, 0
         0, 0, 1, 0.1250
         0, 0, 0, 1];

@@ -22,3 +22,6 @@ coordinator.FlowChart = exampleHelperFlowChartPickPlace('coordinator', coordinat
 
 % Trigger event to start Pick and Place in the Stateflow Chart
 coordinator.FlowChart.startPickPlace; 
+coordinator.FlowChart.endPickPlace;        
+delete(coordinator.FlowChart);
+delete(coordinator);
