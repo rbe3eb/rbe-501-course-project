@@ -37,6 +37,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
         HT = {};
         com = {};
         Jv = {};
+        Jw = {};
     end
     
     methods
@@ -70,7 +71,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
             fprintf('\nHomogeneous Transformations...\n')
             [obj.HT,obj.com] = hTran();
             fprintf('\nJacobians...\n')
-            obj.Jv = Jacobian(obj.HT);
+            [obj.Jv, obj.Jw] = Jacobian(obj.HT);
             fprintf('\nDone!\n')
         end
         

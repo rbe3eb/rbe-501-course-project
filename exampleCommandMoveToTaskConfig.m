@@ -1,4 +1,5 @@
 function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tolerance, avoidCollisions)
+syms q1 q2 q3 q4 q5 q6 q7 real;
 
 %CommandMoveToTaskConfig Move the manipulator to a task-space position
 %   This command moves the manipulator from its current pose to a
@@ -25,11 +26,15 @@ function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tolerance, avoi
         % Current robot joint configuration
         jointInit = coordinator.CurrentRobotJConfig;
         currentRobotJConfig = wrapToPi(jointInit');
- 
+        
         % Final (desired) end-effector pose
-        desOrientation = rotm2Vector(taskConfig(1:3,1:3));
-        desPos = taskConfig(1:3,4);
-        jointFinal = IK(coordinator.HT{end},coordinator.Jv{end},desPos,desOrientation,jointInit);
+        currP = subs(coordinator.HT{end}(1:3,4),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
+        currR = subs(coordinator.HT{end}(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
+        currO = rotm2Vector(currR);
+        
+        desO = rotm2Vector(taskConfig(1:3,1:3));
+        desP = taskConfig(1:3,4);
+        jointFinal = IK(coordinator.HT{end},coordinator.Jv{end},coordinator.Jw{end},desP,desO,currP,currO,jointInit);
         %poseFinal = [taskConfig(1:3,4);anglesFinal']; % 6x1 vector for final pose: [x, y, z, phi, theta, psi]
 
         % Execute closed-loop trajectory optimization and control using
