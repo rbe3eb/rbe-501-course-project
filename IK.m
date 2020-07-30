@@ -1,35 +1,30 @@
 % Compute joint values given end-effector position
-function curr_q = IK(T,Jv,Jw,pDes,rDes,currP,currR,curr_q)
+function currQ = IK(T,Jv,Jw,pDes,rDes,currP,~,currQ)
     syms q1 q2 q3 q4 q5 q6 q7 real;
     q = [q1; q2; q3; q4; q5; q6; q7];
     
-    curr_q = curr_q';
-    %currR = eval(subs(T(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],curr_q'));
+    currQ = currQ';
+    currR = rotMat(T,currQ);
     J = [Jv; Jw];
 	n = 1;
     epsilon = 0.00001;
-    while ((norm([pDes; oDes] - [currP; currO])) > epsilon && n < 400)
-        if isequal(mod(n,20), 0)
-            curr_q = 0 + (pi-0).*rand(7,1);
-            curr_p = FK(T,curr_q);
-            currR = eval(subs(T(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],curr_q'));
-            curr_o = rotm2Vector(currR);
-            curr_op = [curr_p; curr_o];
-        end
+    err = 100;
+    alpha = 0.5;
+    while (n == 1 || norm((err)) > epsilon && n < 400)
         % Evaluate jacobian given current joint values
-        curr_J = eval(subs(J, q, curr_q));
-        % Determine desired change in joint values
-        pErr = currP - pDes;
-        rErr = rDes * currR';
+        curr_J = eval(subs(J, q, currQ));
         
-        qDelta = pinv(curr_J)*(opDes-curr_op);
+        % ERROR
+        pErr = pDes - currP;
+        rErr = rotm2Vector(rDes * currR');
+        err = [pErr; rErr];
+        
         % Update joint values
-        curr_q = curr_q + qDelta;
+        currQ = currQ + alpha*pinv(curr_J)*(err);
+        
         % Evaluate position given current joint values
-        curr_p = FK(T,curr_q);
-        currR = eval(subs(T(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],curr_q'));
-        curr_o = rotm2Vector(currR);
-        curr_op = [curr_p; curr_o];
+        currP = FK(T,currQ);
+        currR = rotMat(T,currQ);
         n = n + 1;
     end
 end

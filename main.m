@@ -1,4 +1,4 @@
-close all; clear; clc;
+close all; clc;
 
 load('exampleHelperKINOVAGen3RobotiqGripper.mat'); 
 

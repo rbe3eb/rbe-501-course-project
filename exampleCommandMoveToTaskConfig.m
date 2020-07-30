@@ -28,10 +28,10 @@ syms q1 q2 q3 q4 q5 q6 q7 real;
         currentRobotJConfig = wrapToPi(jointInit');
         
         % Final (desired) end-effector pose
-        %currP = subs(coordinator.HT{end}(1:3,4),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
+        currP = subs(coordinator.HT{end}(1:3,4),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
         currR = subs(coordinator.HT{end}(1:3,1:3),[q1,q2,q3,q4,q5,q6,q7],currentRobotJConfig');
         
-        desR = rotm2Vector(taskConfig(1:3,1:3));
+        desR = (taskConfig(1:3,1:3));
         desP = taskConfig(1:3,4);
         jointFinal = IK(coordinator.HT{end},coordinator.Jv{end},coordinator.Jw{end},desP,desR,currP,currR,jointInit);
         %poseFinal = [taskConfig(1:3,4);anglesFinal']; % 6x1 vector for final pose: [x, y, z, phi, theta, psi]
