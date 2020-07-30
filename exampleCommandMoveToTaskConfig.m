@@ -27,9 +27,10 @@ function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tolerance, avoi
         currentRobotJConfig = wrapToPi(jointInit');
  
         % Final (desired) end-effector pose
-        anglesFinal = rotm2eul(taskConfig(1:3,1:3),'XYZ');
-        jointFinal = IK(coordinator.Jv,coordinator.HT{end},taskConfig(1:3,4));
-        poseFinal = [taskConfig(1:3,4);anglesFinal']; % 6x1 vector for final pose: [x, y, z, phi, theta, psi]
+        desOrientation = rotm2Vector(taskConfig(1:3,1:3));
+        desPos = taskConfig(1:3,4);
+        jointFinal = IK(coordinator.HT{end},coordinator.Jv{end},desPos,desOrientation,jointInit);
+        %poseFinal = [taskConfig(1:3,4);anglesFinal']; % 6x1 vector for final pose: [x, y, z, phi, theta, psi]
 
         % Execute closed-loop trajectory optimization and control using
         % model predictive control
