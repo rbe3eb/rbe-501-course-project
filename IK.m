@@ -7,10 +7,13 @@ function currQ = IK(T,Jv,Jw,pDes,rDes,currP,~,currQ)
     currR = rotMat(T,currQ);
     J = [Jv; Jw];
 	n = 1;
-    epsilon = 0.00001;
+    epsilon = 0.00000001;
     err = 100;
-    alpha = 0.5;
+    alpha = 1;
     while (n == 1 || norm((err)) > epsilon && n < 400)
+        if isequal(mod(n,50),0)
+            currQ = (pi).*rand(7,1);
+        end
         % Evaluate jacobian given current joint values
         curr_J = eval(subs(J, q, currQ));
         
@@ -23,8 +26,10 @@ function currQ = IK(T,Jv,Jw,pDes,rDes,currP,~,currQ)
         currQ = currQ + alpha*pinv(curr_J)*(err);
         
         % Evaluate position given current joint values
-        currP = FK(T,currQ);
-        currR = rotMat(T,currQ);
+        currT = eval(subs(T,[q1,q2,q3,q4,q5,q6,q7],currQ'));
+        currR = currT(1:3,1:3);
+        currP = currT(1:3,4);
         n = n + 1;
+        disp(norm(err));
     end
 end

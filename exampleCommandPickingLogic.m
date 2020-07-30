@@ -29,11 +29,11 @@ function exampleCommandPickingLogic(coordinator)
                 end
             end
             % Trigger Stateflow chart Event
-            coordinator.FlowChart.partsDetected;
+            %coordinator.FlowChart.partsDetected;
             return;
         end
 
         % Trigger Stateflow chart Event
-        coordinator.FlowChart.noPartsDetected;
+        %coordinator.FlowChart.noPartsDetected;
 
 end

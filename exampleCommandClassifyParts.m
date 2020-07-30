@@ -30,5 +30,5 @@ function exampleCommandClassifyParts(coordinator)
     end
 
    % Trigger Stateflow chart Event
-   coordinator.FlowChart.partsClassified;       
+   %coordinator.FlowChart.partsClassified;       
 end

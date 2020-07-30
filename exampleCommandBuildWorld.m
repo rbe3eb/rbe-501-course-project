@@ -116,6 +116,6 @@ function exampleCommandBuildWorld(coordinator)
     visualizeParts(coordinator)
 
    % Trigger Stateflow chart Event
-   coordinator.FlowChart.worldBuilt;
+   %coordinator.FlowChart.worldBuilt;
 end
 

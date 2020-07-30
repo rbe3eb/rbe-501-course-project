@@ -25,5 +25,5 @@ function exampleCommandActivateGripper(coordinator, state)% This class is for in
        end
        
        % Trigger Stateflow chart Event
-       coordinator.FlowChart.nextAction; 
+       %coordinator.FlowChart.nextAction; 
 end

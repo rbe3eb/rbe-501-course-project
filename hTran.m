@@ -62,7 +62,7 @@ function [T,Teg,com] = hTran()
 
     Teg = [1, 0, 0, 0
         0, 1, 0, 0
-        0, 0, 1, 0.1250
+        0, 0, -1, 0.1250
         0, 0, 0, 1];
     
     % Calculate homogeneous transformations

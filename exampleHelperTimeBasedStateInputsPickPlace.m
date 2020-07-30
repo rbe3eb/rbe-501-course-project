@@ -19,4 +19,5 @@ function dx = exampleHelperTimeBasedStateInputsPickPlace(t,x,motionModel,qEqn,dq
     
     % Compute state derivative
     dx = derivative(motionModel, state, targetState);
+    disp(t);
 end

@@ -11,7 +11,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
 % Copyright 2020 The MathWorks, Inc.
 
     properties         
-        FlowChart
+        %FlowChart
         Robot
         World = {};
         Parts = {};
@@ -165,7 +165,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
         
         % Delete function
         function delete(obj)
-            delete(obj.FlowChart)
+            %delete(obj.FlowChart)
         end
             
     end
