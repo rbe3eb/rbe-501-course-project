@@ -1,20 +1,11 @@
 % Generate trajectory in joint space
-function [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(HT,Jv,qi,dqi,Xf,dXf,ti,tf)
+function [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(~,~,qi,dqi,qf,dqf,ti,tf)
     syms q1 q2 q3 q4 q5 q6 q7 real;
     
     % Trajectory polynomial
     qEqn = sym(zeros(7,1)); 
     dqEqn = sym(zeros(7,1)); 
     ddqEqn = sym(zeros(7,1));
-    
-    % final joint positions
-    qf = IK(HT,Jv,Xf,qi); % (T,Jv,pDes,curr_q)
-    
-    % Evaluate the Jacobian
-    curr_Jvf = eval(subs(Jv,[q1,q2,q3,q4,q5,q6,q7],qf'));
-    
-    % Initial and final joint velocities
-    dqf = IVK(curr_Jvf,dXf);
     
     % Create polynomial equations for each joint
     for n=1:7

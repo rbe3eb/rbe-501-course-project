@@ -34,16 +34,11 @@ syms q1 q2 q3 q4 q5 q6 q7 real;
         desR = (taskConfig(1:3,1:3));
         desP = taskConfig(1:3,4);
         jointFinal = IK(coordinator.HT{end},coordinator.Jv{end},coordinator.Jw{end},desP,desR,currP,currR,jointInit);
-        %poseFinal = [taskConfig(1:3,4);anglesFinal']; % 6x1 vector for final pose: [x, y, z, phi, theta, psi]
-
-        % Execute closed-loop trajectory optimization and control using
-        % model predictive control
-        mpcTimeStep = 0.6;
-        [positions, velocities, accelerations, timestamp, success] = exampleHelperPlanExecuteTrajectoryPickPlace(coordinator.Robot, mpcTimeStep,  coordinator.Obstacles, coordinator.RobotEndEffector, coordinator.CurrentRobotJConfig, taskConfig, coordinator.CollisionHelper, tolerance, avoidCollisions);
-        if success==0
-            error('Cannot compute motion to reach desired task configuration. Aborting...')
-        end
         
+        qi = jointInit; qf = jointFinal;
+        dqi = zeros(7,1); dqf = zeros(7,1);
+        
+        [qEqn, dqEqn, ddqEqn] = jointSpaceTrajectory(coordinator.HT{end},coordinator.Jv{end},qi,dqi,qf,dqf,ti,tf);
         %% Execute the trajectory using low-fidelity simulation
 
         targetStates = [positions;velocities;accelerations]'; 
