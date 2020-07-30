@@ -1,14 +1,27 @@
-function [] = kinova()
+function [] = kinovaDynamicModel()
     clc; clear;
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     % Compute homogeneous transformations
     [T, com] = hTran();
     % Compute Jacobian matrix at each link's tip
-    %[Jv, ~] = Jacobian(T);
-    %[Ja] = analyticalJacobian(T{end},Jv{end},Jw{end});
     
     [M,C,G] = dynamicModel(T,com);
+    % Simplify dynamic model
+    fprinf('\nSimplifying Dynamic model\n');
+    M = simplify(M);
+    C = simplify(C);
+    G = simplify(G);
+    % Save dynamic model
+    fprintf('\nSaving M...\n');
+    saveVar("M.txt",M);
+    fprintf('\nSaving C...\n');
+    saveVar("C.txt",C);
+    fprintf('\nSaving G...\n');
+    saveVar("G.txt",G);
+    fprintf('\nDONE!!!\n');
+    
+    
     %load('M.mat'); load('C.mat'); load('G.mat');
     % Motion Control: PD Plus Feed-Forward Controller
     Xi = [0; 200; 150] / 1000; 
@@ -324,7 +337,7 @@ function [K,M] = kineticEnergy(Jv,Jw,T,I,mass)
     a = 0; b = 0;
     for n=1:7
         a = ((mass(n)*Jv{n}'*Jv{n}));
-        b = (((Jw{n}'*I{n}*Jw{n})));
+        %b = (((Jw{n}'*I{n}*Jw{n})));
     	m{n} = a+b;
     end
     M = (m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
