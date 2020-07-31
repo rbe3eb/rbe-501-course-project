@@ -29,7 +29,7 @@ function [coordinator] = init(robot)
     % Build world
     buildWorld(coordinator);
     % Move to home position
-    jointSpaceMotionControl(coordinator, coordinator.HomeRobotTaskConfig, [0 3]);
+    jointSpaceMotionControl(coordinator, coordinator.HomeRobotTaskConfig, [0 5]);
     % Detect parts
     DetectParts(coordinator);
     % Classify parts
@@ -108,11 +108,12 @@ function moveObject(coordinator, currT, graspT)
         syms tt
         toolSpeed = 0.1; % m/s
         distance = norm(tform2trvec(currT)-tform2trvec(graspT));
-        tf = ceil(distance/toolSpeed); ti = 0;
+        tf = 3;%ceil(distance/toolSpeed); 
+        ti = 0;
         Xi = currT(1:3,4); Xf = graspT(1:3,4);
         dXi = zeros(3,1); dXf = zeros(3,1);
         [pEqn,~,~] = taskSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf);
-        for t=linspace(ti+0.2,tf,tf)
+        for t=linspace(0,3,5)
             desP = eval(subs(pEqn,tt,t));
             refPose = [graspT(1:4,1:3), [desP; 1]];
             jointSpaceMotionControl(coordinator, refPose, [t t+1]);     

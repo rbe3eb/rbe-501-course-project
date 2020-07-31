@@ -33,7 +33,7 @@ function jointSpaceMotionControl(coordinator, taskConfig, tspan)
         
         % Simulate motion jointSpaceMotionControl(qEqn,dqEqn,ddqEqn,HT,Jv,qi,dqi,ti,tf) 
         options = odeset('RelTol', 1e-2, 'AbsTol', [1e-2*ones(14,1)]);
-        [T,X] = ode15s(@(t,x) diffSolverJointSpace(t,x,MotionModel,qEqn,dqEqn,ddqEqn,HT,Teg,Jv), [ti tf], initState,options);
+        [T,X] = ode15s(@(t,x) diffSolverJointSpace(t,x,MotionModel,qEqn,dqEqn,ddqEqn,HT,Teg,Jv), [ti tf], initState);
         
         % Forward kinematics for end-effector and gripper
         cnt = size(T,1);
