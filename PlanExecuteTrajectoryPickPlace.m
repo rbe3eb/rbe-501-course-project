@@ -1,4 +1,4 @@
-function [positions, velocities, accelerations, timestamp, success] = exampleHelperPlanExecuteTrajectoryPickPlace(robot, mpcTimeStep, obstacles, endEffector, jointInit, taskFinal, collisionHelper, tolerance, avoidCollisions)
+function [positions, velocities, accelerations, timestamp, success] = PlanExecuteTrajectoryPickPlace(robot, mpcTimeStep, obstacles, endEffector, jointInit, taskFinal, collisionHelper, tolerance, avoidCollisions)
 % This function is for internal use and may be removed in a future release
 %
 %exampleHelperPlanExecuteTrajectoryPickPlace Generate and simulate motion along a collision-free trajectory

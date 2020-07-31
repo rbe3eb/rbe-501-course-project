@@ -1,4 +1,4 @@
-function exampleCommandActivateGripper(coordinator, state)% This class is for internal use and may be removed in a future release
+function activateGripper(coordinator, state)% This class is for internal use and may be removed in a future release
 %
 %CommandActivateGripper Command function to activate gripper  
 %   This command activates the gripper. However, this action has just two

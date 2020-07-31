@@ -1,4 +1,4 @@
-function exampleCommandPickingLogic(coordinator)
+function PickingLogic(coordinator)
 
 %CommandPickingLogic Determine which parts to pick next
 %   This command instructs the robot which parts to pick next based on the
@@ -17,7 +17,6 @@ function exampleCommandPickingLogic(coordinator)
             % their old positions b=depending on their type
             
             if coordinator.DetectedParts{coordinator.NextPart}.type == 1
-               %coordinator.DetectedParts{coordinator.NextPart}.hold = 1;
                coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 1;                    
             else if coordinator.DetectedParts{coordinator.NextPart}.type == 2
                 coordinator.DetectedParts{coordinator.NextPart}.placingBelt = 2;
@@ -30,11 +29,11 @@ function exampleCommandPickingLogic(coordinator)
                 end
             end
             % Trigger Stateflow chart Event
-            coordinator.FlowChart.partsDetected;
+            %coordinator.FlowChart.partsDetected;
             return;
         end
 
         % Trigger Stateflow chart Event
-        coordinator.FlowChart.noPartsDetected;
+        %coordinator.FlowChart.noPartsDetected;
 
 end

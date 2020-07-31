@@ -1,4 +1,4 @@
-function exampleCommandDetectParts(coordinator)
+function DetectParts(coordinator)
 %
 %CommandDetectParts Detect parts and identify their poses
 %   In this simplified workflow, the parts are detected using a list in the

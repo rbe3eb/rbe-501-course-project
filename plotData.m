@@ -1,6 +1,6 @@
 function plotData(T,X,Xdes,eePos,eePosDes,method,space)
     % Joint Position
-    figure()
+    figure(2)
     for n=1:7
         plot(T, X(:,n));
         hold on
@@ -13,7 +13,7 @@ function plotData(T,X,Xdes,eePos,eePosDes,method,space)
     hold off
     
     % Joint Velocity
-    figure()
+    figure(3)
     for n=8:14
         plot(T, X(:,n));
         hold on
@@ -26,7 +26,7 @@ function plotData(T,X,Xdes,eePos,eePosDes,method,space)
     hold off
 
     % Joint Position
-    figure()
+    figure(4)
     for n=1:7
         plot(T, Xdes(:,n));
         hold on
@@ -39,7 +39,7 @@ function plotData(T,X,Xdes,eePos,eePosDes,method,space)
     hold off
     
     % Joint Velocity
-    figure()
+    figure(5)
     for n=8:14
         plot(T, Xdes(:,n));
         hold on
@@ -55,7 +55,7 @@ function plotData(T,X,Xdes,eePos,eePosDes,method,space)
     
     % End-Effector Position
     % x
-    figure()
+    figure(6)
     subplot(1,3,1)
     plot(T,eePos(:,1))
     hold on

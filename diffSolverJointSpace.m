@@ -1,4 +1,4 @@
-function dx = exampleHelperTimeBasedStateInputsPickPlace(t,x,motionModel,qEqn,dqEqn,ddqEqn,HT,Teg,Jv)
+function dx = diffSolverJointSpace(t,x,motionModel,qEqn,dqEqn,ddqEqn,HT,Teg,Jv)
     syms tt q1 q2 q3 q4 q5 q6 q7 real;
     
     % Compute current desired motion -> [position, velocity, acceleration]

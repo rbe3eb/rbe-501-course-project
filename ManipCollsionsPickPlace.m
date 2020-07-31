@@ -1,4 +1,4 @@
-classdef exampleHelperManipCollsionsPickPlace < robotics.manip.internal.InternalAccess
+classdef ManipCollsionsPickPlace < robotics.manip.internal.InternalAccess
     % Copyright 2020 The MathWorks, Inc.
     % This file is for internal use only and may be modified or removed in
     % a future release.
@@ -34,7 +34,7 @@ classdef exampleHelperManipCollsionsPickPlace < robotics.manip.internal.Internal
     %% Constructor methods
     
     methods
-        function obj = exampleHelperManipCollsionsPickPlace(tree, partMask)
+        function obj = ManipCollsionsPickPlace(tree, partMask)
             
             % Define the tree from the input
             validateattributes(tree, {'robotics.RigidBodyTree'}, {'scalar'}, 'exampleHelperManipCollsions', 'tree');

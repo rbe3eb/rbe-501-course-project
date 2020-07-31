@@ -13,7 +13,7 @@ end
 
 function [coordinator] = init(robot)
     currentRobotJConfig = homeConfiguration(robot);
-    coordinator = exampleHelperCoordinatorPickPlace(robot,currentRobotJConfig, "gripper");
+    coordinator = PickPlace(robot,currentRobotJConfig, "gripper");
     %go to home configuration
     coordinator.HomeRobotTaskConfig = trvec2tform([0.4, 0, 0.6])*axang2tform([0 1 0 pi]);
     %hold over white beaker to pour
@@ -27,32 +27,32 @@ function [coordinator] = init(robot)
     %place white beaker back in center table area
     %coordinator.PlacingPose{4} = trvec2tform([[0.4 0.15 0.32]])*axang2tform([0 1 0 pi]);
     % Build world
-    exampleCommandBuildWorld(coordinator);
+    buildWorld(coordinator);
     % Move to home position
-    exampleCommandMoveToTaskConfig(coordinator, coordinator.HomeRobotTaskConfig, [0 3]);
+    jointSpaceMotionControl(coordinator, coordinator.HomeRobotTaskConfig, [0 3]);
     % Detect parts
-    exampleCommandDetectParts(coordinator);
+    DetectParts(coordinator);
     % Classify parts
-    exampleCommandClassifyParts(coordinator);
+    ClassifyParts(coordinator);
 end
 
 function [] = placeObject(coordinator,part)
     fprintf('\nPlacing Object\n')
     % Move to placement approach position
 % Move to placement approach position
-    %exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]), [0 1]);
+    %jointSpaceMotionControl(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]), [0 1]);
 
     % Move to placement approach position
-    %exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}, [0 1]);
+    %jointSpaceMotionControl(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}, [0 1]);
     currT = coordinator.CurrentRobotTaskConfig;
     desT = coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt-[0;0;0.5]};
     moveObject(coordinator, currT, desT);
 
     % Deactivate gripper
-    exampleCommandActivateGripper(coordinator,'off')
+    ActivateGripper(coordinator,'off')
 
     % Move to retracted position
-    exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]), [0 1]);
+    jointSpaceMotionControl(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]), [0 1]);
 
     % Update the placing pose so that the next part is placed elsewhere
     coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}(1,4) =  coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}(1,4) - 0.15;
@@ -66,12 +66,12 @@ function [currPart] = pickObject(coordinator)
             currPart = 3;
         end
         updateFlow(currPart);
-        exampleCommandPickingLogic(coordinator)
+        PickingLogic(coordinator)
         % Compute grasp pose
-        exampleCommandComputeGraspPose(coordinator);
+        ComputeGraspPose(coordinator);
         % Move to picking approach position
         
-        %exampleCommandMoveToTaskConfig(coordinator, coordinator.GraspPose*trvec2tform([0,0,-0.1]),[0 2]);
+        %jointSpaceMotionControl(coordinator, coordinator.GraspPose*trvec2tform([0,0,-0.1]),[0 2]);
         % Move to reach position
         currT = coordinator.CurrentRobotTaskConfig;
         graspT = coordinator.GraspPose;
@@ -79,9 +79,9 @@ function [currPart] = pickObject(coordinator)
         fprintf('\nObject reached\n')
 
         % Activate the gripper
-        exampleCommandActivateGripper(coordinator,'on');
+        ActivateGripper(coordinator,'on');
         % Move to retracted position
-        exampleCommandMoveToTaskConfig(coordinator,coordinator.GraspPose*trvec2tform([0, 0, -0.2]), [0 1]);
+        jointSpaceMotionControl(coordinator,coordinator.GraspPose*trvec2tform([0, 0, -0.2]), [0 1]);
         fprintf('\nObject picked up\n')
         % Move to retracted position
         currT = coordinator.CurrentRobotTaskConfig;
@@ -106,15 +106,15 @@ end
 
 function moveObject(coordinator, currT, graspT)
         syms tt
-        toolSpeed = 0.25; % m/s
+        toolSpeed = 0.1; % m/s
         distance = norm(tform2trvec(currT)-tform2trvec(graspT));
         tf = ceil(distance/toolSpeed); ti = 0;
         Xi = currT(1:3,4); Xf = graspT(1:3,4);
         dXi = zeros(3,1); dXf = zeros(3,1);
         [pEqn,~,~] = taskSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf);
-        for t=linspace(ti+0.2,tf,tf*1.5)
+        for t=linspace(ti+0.2,tf,tf)
             desP = eval(subs(pEqn,tt,t));
             refPose = [graspT(1:4,1:3), [desP; 1]];
-            exampleCommandMoveToTaskConfig(coordinator, refPose, [t t+1]);     
+            jointSpaceMotionControl(coordinator, refPose, [t t+1]);     
         end
 end

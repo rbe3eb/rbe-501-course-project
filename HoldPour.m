@@ -1,4 +1,4 @@
-function exampleCommandHoldPour(coordinator)% This class is for internal use and may be removed in a future release
+function HoldPour(coordinator)% This class is for internal use and may be removed in a future release
 
 
     if coordinator.NextPart.type == 1||2

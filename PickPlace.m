@@ -1,7 +1,7 @@
-classdef exampleHelperCoordinatorPickPlace < handle
+classdef PickPlace < handle
 % This class is for internal use and may be removed in a future release
 %
-%exampleHelperCoordinatorPickPlace Class used to run the Stateflow chart
+%CoordinatorPickPlace Class used to run the Stateflow chart
 %and hold all pick and place runtime data
 %   This class is used to control the pick-and-place workflow execution.
 %   The class serves two main purposes:
@@ -42,7 +42,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
     end
     
     methods
-        function obj = exampleHelperCoordinatorPickPlace(robot, currentRobotJConfig, robotEndEffector)
+        function obj = PickPlace(robot, currentRobotJConfig, robotEndEffector)
             obj.Robot = robot;            
             obj.CurrentRobotJConfig = currentRobotJConfig;
             obj.RobotEndEffector = robotEndEffector;
@@ -53,7 +53,7 @@ classdef exampleHelperCoordinatorPickPlace < handle
             
             % Initialize collision checking
             partMask = ones(1, obj.Robot.NumBodies);
-            obj.CollisionHelper = exampleHelperManipCollsionsPickPlace(obj.Robot, partMask);
+            obj.CollisionHelper = ManipCollsionsPickPlace(obj.Robot, partMask);
             skipCollisionCheck(obj.CollisionHelper, 1);
             skipCollisionCheck(obj.CollisionHelper, 2);
             skipCollisionCheck(obj.CollisionHelper, 3);
