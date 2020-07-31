@@ -7,10 +7,10 @@ function currQ = IK(T,Jv,Jw,pDes,rDes,currP,~,currQ)
     currR = rotMat(T,currQ);
     J = [Jv; Jw];
 	n = 1;
-    epsilon = 0.00000001;
+    epsilon = 0.000001;
     err = 100;
     alpha = 1;
-    while (n == 1 || norm((err)) > epsilon && n < 400)
+    while (n == 1 || norm((err)) > epsilon && n < 200)
         if isequal(mod(n,50),0)
             currQ = (pi).*rand(7,1);
         end
@@ -30,6 +30,5 @@ function currQ = IK(T,Jv,Jw,pDes,rDes,currP,~,currQ)
         currR = currT(1:3,1:3);
         currP = currT(1:3,4);
         n = n + 1;
-        disp(norm(err));
     end
 end

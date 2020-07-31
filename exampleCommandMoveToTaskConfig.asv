@@ -58,7 +58,7 @@ function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tspan)
             
         end
         
-        %plotData(T,X,'PD Controller','Joint Space');
+        plotData(T,X,eePos,eePosErr,'PD Controller','Joint Space');
 
         % Uncomment below to display all successful outputs
         % disp('Executing collision-free trajectory...')

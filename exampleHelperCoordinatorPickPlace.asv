@@ -137,10 +137,10 @@ classdef exampleHelperCoordinatorPickPlace < handle
                 obj.Figure.ShowMarker = false;
                 % Update current robot configuration
                 obj.CurrentRobotJConfig = configNow;
-                obj.CurrentRobotTaskConfig = eeT{k}*trvec2tform([0 0 -0.2]);
+                obj.CurrentRobotTaskConfig = eeT{k}*trvec2tform([0 0 -2]);
                 % Visualize parts
                 if obj.PartOnRobot~=0
-                    obj.Parts{obj.PartOnRobot}.mesh.Pose = obj.CurrentRobotTaskConfig*trvec2tform([0 0 0.25]);
+                    obj.Parts{obj.PartOnRobot}.mesh.Pose = obj.CurrentRobotTaskConfig*trvec2tform([0 0 0.2]);
                     obj.Parts{obj.PartOnRobot}.plotHandle.Matrix = obj.Parts{obj.PartOnRobot}.mesh.Pose;
                 end
                 drawnow;

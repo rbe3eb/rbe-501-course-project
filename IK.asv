@@ -7,11 +7,11 @@ function currQ = IK(T,Jv,Jw,pDes,rDes,currP,~,currQ)
     currR = rotMat(T,currQ);
     J = [Jv; Jw];
 	n = 1;
-    epsilon = 0.00001;
+    epsilon = 0.000001;
     err = 100;
     alpha = 1;
-    while (n == 1 || norm((err)) > epsilon && n < 400)
-        if isequal(mod(n,30),0)
+    while (n == 1 || norm((err)) > epsilon && n < 200)
+        if isequal(mod(n,50),0)
             currQ = (pi).*rand(7,1);
         end
         % Evaluate jacobian given current joint values
