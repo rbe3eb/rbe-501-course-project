@@ -9,7 +9,6 @@ function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tspan)
         Jv = coordinator.Jv;
         Jw = coordinator.Jw;
         MotionModel = coordinator.MotionModel;
-        
 
         % Current robot joint configuration
         jointInit = coordinator.CurrentRobotJConfig;
@@ -58,7 +57,7 @@ function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tspan)
             
         end
         
-        plotData(T,X,eePos,eePosErr,'PD Controller','Joint Space');
+        plotData(T,X,'PD Controller','Joint Space');
 
         % Uncomment below to display all successful outputs
         % disp('Executing collision-free trajectory...')

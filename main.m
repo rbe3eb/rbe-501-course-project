@@ -29,7 +29,7 @@ function [coordinator] = init(robot)
     % Build world
     exampleCommandBuildWorld(coordinator);
     % Move to home position
-    exampleCommandMoveToTaskConfig(coordinator, coordinator.HomeRobotTaskConfig, [0 2]);
+    exampleCommandMoveToTaskConfig(coordinator, coordinator.HomeRobotTaskConfig, [0 3]);
     % Detect parts
     exampleCommandDetectParts(coordinator);
     % Classify parts

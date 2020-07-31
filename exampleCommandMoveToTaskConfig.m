@@ -9,7 +9,6 @@ function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tspan)
         Jv = coordinator.Jv;
         Jw = coordinator.Jw;
         MotionModel = coordinator.MotionModel;
-        
 
         % Current robot joint configuration
         jointInit = coordinator.CurrentRobotJConfig;
@@ -39,26 +38,20 @@ function exampleCommandMoveToTaskConfig(coordinator, taskConfig, tspan)
         % Forward kinematics for end-effector and gripper
         cnt = size(T,1);
         eeT = cell(cnt,1); gripperT = cell(cnt,1);
-        qDes = zeros(cnt,7); dqDes = zeros(cnt,7);
-        qCurr = zeros(cnt,7); dqCurr = zeros(cnt,7);
+        Xdes = zeros(cnt,14);
+        eePos = zeros(cnt,3); eePosDes = zeros(cnt,3);
         for n=1:cnt
             t = T(n);
             q = X(n,1:7);
             dq = X(n,8:14);
             
-            qDes(n,:) = eval(subs(qEqn,tt,t))';
-            dqDes(n,:) = eval(subs(dqEqn,tt,t))';
+            Xdes(n,:) = [eval(subs(qEqn,tt,t))', eval(subs(dqEqn,tt,t))'];
             
-            
-            qCurr(n,:) = q';
-            dqCurr(n,:) = dq';
-            
-            eeT{n} = eval(subs(HT{end},[q1,q2,q3,q4,q5,q6,q7],q));
-            gripperT{n} = eeT{n}*Teg;
-            
+            eePos(n,:) = eval(subs(HT{end}(1:3,4),[q1,q2,q3,q4,q5,q6,q7],q));
+            eePosDes(n,:) = eval(subs(HT{end}(1:3,4),[q1,q2,q3,q4,q5,q6,q7],Xdes(n,1:7)));     
         end
         
-        %plotData(T,X,'PD Controller','Joint Space');
+        plotData(T,X,Xdes,eePos,eePosDes,'PD Controller','Joint Space');
 
         % Uncomment below to display all successful outputs
         % disp('Executing collision-free trajectory...')
