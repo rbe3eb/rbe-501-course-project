@@ -1,4 +1,4 @@
-close all; clc;
+clear all; close all; clc;
 
 load('exampleHelperKINOVAGen3RobotiqGripper.mat'); 
 
@@ -38,39 +38,52 @@ end
 
 function [] = placeObject(coordinator)
     % Move to placement approach position
-    exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]),0.1, true);
+    exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]));
 
     % Move to placement approach position
-    exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt},0.01, false);
+    exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt});
 
     % Deactivate gripper
     exampleCommandActivateGripper(coordinator,'off')
 
     % Move to retracted position
-    exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]),0.07, false);
+    exampleCommandMoveToTaskConfig(coordinator, coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}*trvec2tform([0, 0, -0.2]));
 
     % Update the placing pose so that the next part is placed elsewhere
     coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}(1,4) =  coordinator.PlacingPose{coordinator.DetectedParts{coordinator.NextPart}.placingBelt}(1,4) - 0.15;
-
     fprintf('Part has been placed\n')
 end
 
 function [] = pickObject(coordinator)
+        syms tt
         exampleCommandPickingLogic(coordinator)
         % Compute grasp pose
         exampleCommandComputeGraspPose(coordinator);
         % Move to picking approach position
         
-        exampleCommandMoveToTaskConfig(coordinator, coordinator.GraspPose*trvec2tform([0,0,-0.1]),[2 3]);
+        %exampleCommandMoveToTaskConfig(coordinator, coordinator.GraspPose*trvec2tform([0,0,-0.1]),[0 2]);
         % Move to reach position
-        exampleCommandMoveToTaskConfig(coordinator, coordinator.GraspPose, [3 4]);
+        
+        
+        currT = coordinator.CurrentRobotTaskConfig;
+        graspT = coordinator.GraspPose;
+        
+        toolSpeed = 0.25; % m/s
+        distance = norm(tform2trvec(currT)-tform2trvec(graspT));
+        tf = ceil(distance/toolSpeed); ti = 0;
+        Xi = currT(1:3,4); Xf = graspT(1:3,4);
+        dXi = zeros(3,1); dXf = zeros(3,1);
+        [pEqn,~,~] = taskSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf);
+        for t=ti:tf
+            desP = eval(subs(pEqn,tt,t));
+            refPose = [graspT(1:4,1:3), [desP; 1]];
+            exampleCommandMoveToTaskConfig(coordinator, refPose, [t t+1]);     
+        end
 
         % Activate the gripper
         exampleCommandActivateGripper(coordinator,'on');
-
         % Move to retracted position
         exampleCommandMoveToTaskConfig(coordinator,coordinator.GraspPose*trvec2tform([0, 0, -0.2]), [4 5]);
-
         % Move to retracted position
         exampleCommandMoveToTaskConfig(coordinator, coordinator.HoldConfig, [5 6]);
 end

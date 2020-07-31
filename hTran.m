@@ -62,7 +62,7 @@ function [T,Teg,com] = hTran()
 
     Teg = [1, 0, 0, 0
         0, 1, 0, 0
-        0, 0, -1, 0.1250
+        0, 0, 1, 0.1250
         0, 0, 0, 1];
     
     % Calculate homogeneous transformations
@@ -72,5 +72,5 @@ function [T,Teg,com] = hTran()
     T{4} = simplify(T{3}*T45);
     T{5} = simplify(T{4}*T56);
     T{6} = simplify(T{5}*T67);
-    T{7} = simplify(T{6}*T7_ee);
+    T{7} = simplify(T{6}*T7_ee*Teg);
 end

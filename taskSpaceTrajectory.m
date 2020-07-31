@@ -2,11 +2,11 @@ function [pEqn,dpEqn,ddpEqn] = taskSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf)
     syms q1 q2 q3 q4 q5 q6 q7 real;
     
     % Trajectory polynomial
-    pEqn = sym(zeros(7,1)); 
-    dpEqn = sym(zeros(7,1)); 
-    ddpEqn = sym(zeros(7,1));
+    pEqn = sym(zeros(3,1)); 
+    dpEqn = sym(zeros(3,1)); 
+    ddpEqn = sym(zeros(3,1));
     % Create polynomial equation
-    for n=1:7
+    for n=1:3
         [pEqn(n),dpEqn(n),ddpEqn(n)] = generatePoly(Xi(n),Xf(n),dXi(n),dXf(n),ti,tf);
     end
 end
