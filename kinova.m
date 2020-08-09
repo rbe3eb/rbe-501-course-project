@@ -5,10 +5,9 @@ function [] = kinova()
     % Compute homogeneous transformations
     T = hTran();
     % Compute Jacobian matrix at each link's tip
-    [Jv, ~] = Jacobian(T);
-    %[Ja] = analyticalJacobian(T{end},Jv{end},Jw{end});
+    [Jv, Jw] = Jacobian(T);
     
-    [M,C,G] = dynamicModel(T);
+    %[M,C,G] = dynamicModel(T);
     %load('M.mat'); load('C.mat'); load('G.mat');
     % Motion Control: PD Plus Feed-Forward Controller
     Xi = [0; 200; 150] / 1000; 
@@ -20,7 +19,25 @@ function [] = kinova()
     ti = 0; tf = 10; % Initial and final time
     % Derive joint space trajectory polynomial
     [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf,T{end},Jv{end});
-    jointSpaceMotionControl(qEqn,dqEqn,ddqEqn,T{end},Jv,M,C,G,[ti, tf]);
+    [Jv_arr, Jw_arr] = trackTrajectory(Jv,Jw,qEqn,dqEqn,ddqEqn);
+    
+    %jointSpaceMotionControl(qEqn,dqEqn,ddqEqn,T{end},Jv,M,C,G,[ti, tf]);
+end
+
+function [Jv_arr, Jw_arr] = trackTrajectory(Jv,Jw,qEqn,~,~)
+    syms tt q1 q2 q3 real;
+    
+    tme = linspace(0,10,100);
+    cnt = numel(tme);
+    
+    Jv_arr = cell(cnt,1);
+    Jw_arr = cell(cnt,1);
+    for n=1:cnt
+        t = tme(n);
+        q = eval(subs(qEqn,tt,t));
+        Jv_arr{n} = eval(subs(Jv{end},[q1,q2,q3],q'));
+        Jw_arr{n} = eval(subs(Jw{end},[q1,q2,q3],q'));
+    end 
 end
 
 function [M,C,G] = dynamicModel(T)
