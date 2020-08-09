@@ -1,5 +1,5 @@
 function [] = kinova()
-    clc; clear;
+    clc;
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
     % Compute homogeneous transformations
@@ -25,7 +25,7 @@ function [] = kinova()
 end
 
 function [Jv_arr, Jw_arr] = trackTrajectory(Jv,Jw,qEqn,~,~)
-    syms tt q1 q2 q3 real;
+    syms tt q1 q2 q3 q4 q5 q6 q7 real;
     
     tme = linspace(0,10,100);
     cnt = numel(tme);
@@ -35,8 +35,8 @@ function [Jv_arr, Jw_arr] = trackTrajectory(Jv,Jw,qEqn,~,~)
     for n=1:cnt
         t = tme(n);
         q = eval(subs(qEqn,tt,t));
-        Jv_arr{n} = eval(subs(Jv{end},[q1,q2,q3],q'));
-        Jw_arr{n} = eval(subs(Jw{end},[q1,q2,q3],q'));
+        Jv_arr{n} = eval(subs(Jv{end},[q1,q2,q3,q4,q5,q6,q7],q'));
+        Jw_arr{n} = eval(subs(Jw{end},[q1,q2,q3,q4,q5,q6,q7],q'));
     end 
 end
 
