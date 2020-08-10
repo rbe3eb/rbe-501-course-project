@@ -1,15 +1,13 @@
-function [] = kinova()
-    clc;
+function [] = kinova0()
+    clc; close all; clear all;
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
-    % Compute homogeneous transformations
-    T = hTran();
-    % Compute Jacobian matrix at each link's tip
-    [Jv, Jw] = Jacobian(T);
     
+    % Compute homogeneous transformations
+    T = hTran();    
     [M,C,G] = dynamicModel(T);
-    %load('M.mat'); load('C.mat'); load('G.mat');
-    % Motion Control: PD Plus Feed-Forward Controller
+    
+    [Jv, Jw] = Jacobian(T);
     Xi = [0; 200; 150] / 1000; 
     Xf = [200; 0; 200] / 1000;
     
@@ -19,117 +17,6 @@ function [] = kinova()
     ti = 0; tf = 10; % Initial and final time
     % Derive joint space trajectory polynomial
     [qEqn,dqEqn,ddqEqn] = jointSpaceTrajectory(Xi,Xf,dXi,dXf,ti,tf,T{end},Jv{end});
-    
-    [Jv_arr, Jw_arr, q] = trackTrajectory(Jv,Jw,qEqn,dqEqn,ddqEqn);
-    [mu, mu1] = manipulability(Jv_arr, Jw_arr)
-    
-    %trajectoryPlot(T, q);
-    %jointSpaceMotionControl(qEqn,dqEqn,ddqEqn,T{end},Jv,M,C,G,[ti, tf]);
-end
-
-function trajectoryPlot(T,q)
-T=T{1}*T{2}*T{3}*T{4}*T{5}*T{6}*T{7};
-p =[];
-for i=1:100
-    p_cur = FK(T,cell2mat(q(i)));
-    p=[p,p_cur];
-end
-
-    figure
-    plot3(p(1,1:10),p(2,1:10),p(3,1:10))
-    hold on
-    plot3(p(1,10:20),p(2,10:20),p(3,10:20))
-    hold on
-    plot3(p(1,20:30),p(2,20:30),p(3,20:30))
-    hold on
-    plot3(p(1,30:40),p(2,30:40),p(3,30:40))
-    hold on
-    plot3(p(1,40:50),p(2,40:50),p(3,40:50))
-    hold on
-    plot3(p(1,50:60),p(2,50:60),p(3,50:60))
-    hold on
-    plot3(p(1,60:70),p(2,60:70),p(3,60:70))
-    hold on
-    plot3(p(1,70:80),p(2,70:80),p(3,70:80))
-    hold on
-    plot3(p(1,80:90),p(2,80:90),p(3,80:90))
-    hold on
-    plot3(p(1,90:100),p(2,90:100),p(3,90:100))
-    title("End Effector Trajectory")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-    figure
-    plot3(p(1,1:10),p(2,1:10),p(3,1:10))
-    title("End Effector Trajectory 1")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-    figure
-    plot3(p(1,10:20),p(2,10:20),p(3,10:20))
-    title("End Effector Trajectory 2")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-    figure
-    plot3(p(1,20:30),p(2,20:30),p(3,20:30))
-    title("End Effector Trajectory 3")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-        figure
-    plot3(p(1,30:40),p(2,30:40),p(3,30:40))
-    title("End Effector Trajectory 4")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-        figure
-    plot3(p(1,40:50),p(2,40:50),p(3,40:50))
-    title("End Effector Trajectory 5")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-        figure
-    plot3(p(1,50:60),p(2,50:60),p(3,50:60))
-    title("End Effector Trajectory 6")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-        figure
-    plot3(p(1,60:70),p(2,60:70),p(3,60:70))
-    title("End Effector Trajectory 7")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-        figure
-    plot3(p(1,70:80),p(2,70:80),p(3,70:80))
-    title("End Effector Trajectory 8")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-    figure
-    plot3(p(1,80:90),p(2,80:90),p(3,80:90))
-    title("End Effector Trajectory 9")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-    
-    figure
-    plot3(p(1,90:100),p(2,90:100),p(3,90:100))
-    title("End Effector Trajectory 10")
-    xlabel('X')
-    ylabel('Y')
-    zlabel('Z')
-
 end
 
 function [Mu, Mu1] = manipulability(Jv, Jw)
@@ -186,28 +73,65 @@ end
 function [M,C,G] = dynamicModel(T)
     syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 ...
         ddq1 ddq2 ddq3 ddq4 ddq5 ddq6 ddq7 real;
-
+    
     % Link masses
     mass = [1.377, 1.1636, 1.1636, 0.930, 0.678, 0.678, 1.4257];
-    % Compute link centers of mass
     linkCOM = LinkCenterOfMass(T);
-    % Collect inertia tensor
     I = inertialTensor();
-    % Compute Jacobian matrix at each link' center of mass
-    [Jv_COM, Jw_COM] = JacobianCOM(T, linkCOM);
-    % Compute kinetic energy
-	K = kineticEnergy(Jv_COM,Jw_COM,T,I,mass);
-    % Compute potential energy
+    [Jv, Jw] = JacobianCOM(T, linkCOM);
+	[M,~] = kineticEnergy(Jv,Jw,T,I,mass);
 	P = potentialEnergy(linkCOM,mass);    
-    L = simplify(expand(K - P));
-    % Compute torque
-    tau = torque(L);
-    % Compute Intertia matrix
-    M = mMatrix(tau); 
-    % Commpute Gravity matrix
-    G = gMatrix(tau);
-    % Centrifugal and coriolis matrix
-    C = cMatrix(tau,M,G);
+    C = christoffel(M);
+    G = gravity(P);
+end
+
+function [M,K] = kineticEnergy(Jv,Jw,T,I,mass)
+    syms dq1 dq2 dq3 dq4 dq5 dq6 dq7 real;
+    
+    dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
+    m = cell(7,1);
+    K = [];
+    
+    % Compute inertia matrix
+    for n=1:7
+        R = T{n}(1:3,1:3);
+        a = simplify(expand(mass(n)*Jv{n}'*Jv{n}));
+        b = simplify(expand((Jw{n}'*R*I{n}*R'*Jw{n})));
+    	m{n} = simplify(a + b);
+    end
+    M = simplify(m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
+    % Compute kinetic energy
+    %K = simplify((1/2)*dq'*M*dq);
+end
+
+function [C] = christoffel(D)
+    syms q1 q2 q3 q4 q5 q6 q7 dq1 dq2 dq3 dq4 dq5 dq6 dq7 real
+    
+    q = [q1; q2; q3; q4; q5; q6; q7];
+    dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
+    C = sym(zeros(7,7));
+    for k=1:7
+        for j=1:7
+            tempC = sym(zeros(7,1));
+            for i=1:7
+                a = (diff(D(k,j),q(i)));
+                b = (diff(D(k,i),q(j)));
+                c = (diff(D(i,j),q(k)));
+                tempC(i) = (expand((1/2)*(a + b - c)))*dq(i);
+            end
+            C(k,j) = (sum(tempC));
+        end
+    end
+end
+
+function [G] = gravity(P)
+    syms q1 q2 q3 q4 q5 q6 q7
+    
+    q = [q1; q2; q3; q4; q5; q6; q7];
+    G = sym(zeros(7,1));
+    for n=1:7
+        G(n) = simplify(expand(diff(P,q(n))));
+    end
 end
 
 function [tau] = torque(L)
@@ -220,63 +144,6 @@ function [tau] = torque(L)
     parfor n=1:7
         tau(n,1) = eulerLagrange(L,q(n),dq(n));
     end
-end
-
-function [] = jointSpaceMotionControl(qEqn,dqEqn,ddqEqn,HT,Jv,M,C,G,tspan) 
-    global q dq eePos eePosErr torque;
-    syms tt;
-    q = []; dq = []; eePos = []; eePosErr = []; torque = [];
-    
-    % Initial position and velocity error
-    X0 = ones(14,1);
-    % Solve for joint errors
-    [T,X] = ode45(@(t,x)diffSolverJointSpace(t,x,qEqn,dqEqn,ddqEqn,Jv,M,C,G,HT),tspan,X0);
-    plotData(T, X, q, dq, toque, eePos);
-end
-
-function dx = diffSolverJointSpace(t,x,qEqn,dqEqn,ddqEqn,~,M,C,G,HT)
-	global q dq eePos torque;   
-    syms tt q1 q2 q3 q4 q5 q6 q7 real;
-    
-    Kp = 100*eye(7);
-    Kv = 100*eye(7);
-    dx = zeros(14,1);
-    
-    % Compute current desired motion -> [position, velocity, acceleration]
-	qDes = eval(subs(qEqn, tt, t));
-	dqDes = eval(subs(dqEqn, tt, t));
-	ddqDes = eval(subs(ddqEqn, tt, t));
-    
-    % Obtain state variables -> [position err, velocity error]
-	qErr = x(1:7,1);
-	dqErr = x(8:14,1);
-    
-    curr_q = qDes - qErr;
-    curr_dq = dqDes - dqErr;
-    
-    % Compute position and velocity
-    curr_p = FK(HT,curr_q);
-    
-    % collect end-effector position
-	q = [q, curr_q];
-    dq = [dq, curr_dq];
-    eePos = [eePos, curr_p];
-    
-    % Evaluate current dynamic model
-    curr_M = eval(subs(M, [q1,q2,q3,q4,q5,q6,q7], curr_q'));
-    curr_C = eval(subs(C, [q1,q2,q3,q4,q5,q6,q7], curr_q'));
-    curr_G = eval(subs(G, [q1,q2,q3,q4,q5,q6,q7], curr_q'));
-    % Evaluate desired dynamic model
-    curr_Md = eval(subs(M, [q1,q2,q3,q4,q5,q6,q7], curr_q'));
-    curr_Cd = eval(subs(C, [q1,q2,q3,q4,q5,q6,q7], curr_q'));
-    curr_Gd = eval(subs(G, [q1,q2,q3,q4,q5,q6,q7], curr_q'));
-    % Compute residual dynamics
-    h = (curr_Md - curr_M)*ddqDes + (curr_Cd - curr_C)*dqDes + (curr_Gd - curr_G);
-	tau = Kp*qErr + Kv*dqErr + curr_Md*ddqDes + curr_Cd*dqDes + curr_Gd;
-    % Update state vector
-    dx(1:7,1) = dqErr;
-	dx(8:14,1) = inv(curr_M)*(-Kp*qErr - Kv*dqErr - curr_C*dqErr - h);
-    torque = [torque, tau];
 end
 
 function T = hTran()
@@ -356,8 +223,8 @@ function [Jv_COM, Jw_COM] = JacobianCOM(T, linkCOM)
     jv3 = simplify(expand(jacobian(linkCOM(1:3,3), [q1,q2,q3,q4,q5,q6,q7])));
     jv4 = simplify(expand(jacobian(linkCOM(1:3,4), [q1,q2,q3,q4,q5,q6,q7])));
     jv5 = simplify(expand(jacobian(linkCOM(1:3,5), [q1,q2,q3,q4,q5,q6,q7])));
-    jv6 = simplify(expand(jacobian(linkCOM(1:3,6), [q1,q2,q3,q4,q5,q6,q7])));
-    jv7 = simplify(expand(jacobian(linkCOM(1:3,7), [q1,q2,q3,q4,q5,q6,q7])));
+    jv6 = simplify((jacobian(linkCOM(1:3,6), [q1,q2,q3,q4,q5,q6,q7])));
+    jv7 = simplify((jacobian(linkCOM(1:3,7), [q1,q2,q3,q4,q5,q6,q7])));
     % Angular velocity jacobian at each center of mass
     jw1 = [[0; 0; 1], zeros(3,6)];
     jw2 = [[0;0;1], T{1}(1:3,3), zeros(3,5)];
@@ -430,32 +297,14 @@ function linkCOM = LinkCenterOfMass(T)
         [0.000001; -0.045483; -0.009650; 1], ...
         [-0.0001; 0.0057; 0.0764; 1]]);
     % Link center of mass wrt the base frame
-    linkCOM(1:4,1) = simplify(T{1}*L(1:4,1));
-    linkCOM(1:4,2) = simplify(T{2}*L(1:4,2));
-    linkCOM(1:4,3) = simplify(T{3}*L(1:4,3));
-    linkCOM(1:4,4) = simplify(T{4}*L(1:4,4));
-    linkCOM(1:4,5) = simplify(T{5}*L(1:4,5));
-    linkCOM(1:4,6) = simplify(T{6}*L(1:4,6));
-    linkCOM(1:4,7) = simplify(T{7}*L(1:4,7));
+    linkCOM(1:4,1) = simplify(T{1}(1:4,4));
+    linkCOM(1:4,2) = simplify(T{2}(1:4,4));
+    linkCOM(1:4,3) = simplify(T{3}(1:4,4));
+    linkCOM(1:4,4) = simplify(T{4}(1:4,4));
+    linkCOM(1:4,5) = simplify(T{5}(1:4,4));
+    linkCOM(1:4,6) = simplify(T{6}(1:4,4));
+    linkCOM(1:4,7) = simplify(T{7}(1:4,4));
     linkCOM = linkCOM(1:3,:);
-end
-
-function K = kineticEnergy(Jv,Jw,T,I,mass)
-    syms dq1 dq2 dq3 dq4 dq5 dq6 dq7 real;
-    
-    dq = [dq1; dq2; dq3; dq4; dq5; dq6; dq7];
-    m = cell(7,1);
-    
-    % Compute inertia matrix
-    for n=1:7
-        R = T{n}(1:3,1:3);
-        a = simplify(expand(mass(n)*Jv{n}'*Jv{n}));
-        b = simplify(expand((Jw{n}'*R*I{n}*R'*Jw{n})));
-    	m{n} = simplify(a + b);
-    end
-    M = simplify(m{1} + m{2} + m{3} + m{4} + m{5} + m{6} + m{7});
-    % Compute kinetic energy
-    K = simplify((1/2)*dq'*M*dq);
 end
 
 % Collect inertial tensors
@@ -479,9 +328,10 @@ function [I] = inertialTensor()
     Izy = Iyz;
     % Create inertia tensors
     for n=1:7
-        I{n} = [Ixx(n) Ixy(n) Ixz(n)
-            Iyx(n) Iyy(n) Iyz(n)
-            Izx(n) Izy(n) Izz(n)];
+        I{n} = zeros(3);
+%         I{n} = [Ixx(n) Ixy(n) Ixz(n)
+%             Iyx(n) Iyy(n) Iyz(n)
+%             Izx(n) Izy(n) Izz(n)];
     end
 end
     
